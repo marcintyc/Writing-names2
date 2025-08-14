@@ -16,6 +16,7 @@ const state = {
 	nameCounts: new Map(),
 	confettiEnabled: true,
 	speedMode: 'normal',
+	spamMode: 'normal',
 };
 
 const els = {
@@ -32,6 +33,7 @@ const els = {
 	testLiveBtn: null,
 	speedSelect: null,
 	refreshBtn: null,
+	spamSelect: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -289,37 +291,50 @@ async function fetchLiveChatId(videoId, apiKey) {
 	return chatId;
 }
 
-async function pollChatOnce() {
-	if (!state.liveChatId || !state.apiKey) return;
+async function pollChatOnceInternal(pageToken) {
 	const base = 'https://www.googleapis.com/youtube/v3/liveChat/messages';
 	const params = new URLSearchParams({
 		liveChatId: state.liveChatId,
 		part: 'snippet,authorDetails',
 		key: state.apiKey,
+		maxResults: '200',
 	});
-	if (state.nextPageToken) params.set('pageToken', state.nextPageToken);
+	if (pageToken) params.set('pageToken', pageToken);
 	const url = `${base}?${params.toString()}`;
 	const res = await fetch(url);
 	if (!res.ok) throw new Error(`liveChat.messages HTTP ${res.status}`);
 	const data = await res.json();
+	return data;
+}
 
-	const items = Array.isArray(data.items) ? data.items : [];
+async function pollChatOnce() {
+	if (!state.liveChatId || !state.apiKey) return;
+	let data = await pollChatOnceInternal(state.nextPageToken);
 	let appended = 0;
-	for (const it of items) {
-		const msg = it?.snippet?.displayMessage || '';
-		if (!msg) continue;
-		if (isLikelyCommand(msg)) continue;
-		const authorId = it?.authorDetails?.channelId || it?.authorDetails?.channelUrl || it?.authorDetails?.displayName || '';
-		if (typeof isAuthorCoolingDown === 'function' && isAuthorCoolingDown(authorId)) continue;
-		const name = extractValidName(msg);
-		if (!name) continue;
-		appendName(name);
-		if (typeof markAuthorAccepted === 'function') markAuthorAccepted(authorId);
-		state.lastUsefulMessageTs = Date.now();
-		appended++;
+	while (true) {
+		const items = Array.isArray(data.items) ? data.items : [];
+		for (const it of items) {
+			const msg = it?.snippet?.displayMessage || '';
+			if (!msg) continue;
+			if (isLikelyCommand(msg)) continue;
+			const authorId = it?.authorDetails?.channelId || it?.authorDetails?.channelUrl || it?.authorDetails?.displayName || '';
+			if (typeof isAuthorCoolingDown === 'function' && isAuthorCoolingDown(authorId)) continue;
+			const name = extractValidName(msg);
+			if (!name) continue;
+			appendName(name);
+			if (typeof markAuthorAccepted === 'function') markAuthorAccepted(authorId);
+			state.lastUsefulMessageTs = Date.now();
+			appended++;
+		}
+		state.nextPageToken = data.nextPageToken;
+		// Catch-up: jeśli API zwróciło dużo wiadomości i ma nextPageToken, od razu pobierz kolejną stronę
+		if (data.nextPageToken && items.length >= 150) {
+			data = await pollChatOnceInternal(data.nextPageToken);
+			continue;
+		}
+		break;
 	}
 
-	state.nextPageToken = data.nextPageToken;
 	const recommended = Number(data.pollingIntervalMillis || 1500);
 	const POLL_MIN_MS = 5000;
 	const POLL_MAX_MS = 15000;
@@ -327,7 +342,6 @@ async function pollChatOnce() {
 	if (appended === 0) {
 		nextMs = Math.min(POLL_MAX_MS, Math.floor((state.currentPollMs || nextMs) * 1.5));
 	}
-	// Jeżeli od ostatniego zaakceptowanego imienia minęła >1 min, przejdź do max
 	if (Date.now() - state.lastUsefulMessageTs > 60000) {
 		nextMs = POLL_MAX_MS;
 	}
@@ -409,9 +423,11 @@ async function testApiKey() {
 
 function isAuthorCoolingDown(authorId) {
 	if (!authorId) return false;
+	if (state.spamMode === 'off') return false;
 	const now = Date.now();
 	const last = state.authorLastAcceptedAt?.get(authorId) || 0;
-	return (now - last) < 5000; // 5s cooldown per author
+	const cooldown = state.spamMode === 'strict' ? 8000 : 5000;
+	return (now - last) < cooldown;
 }
 
 function markAuthorAccepted(authorId) {
@@ -473,6 +489,7 @@ function setupUi() {
 	els.testLiveBtn = qs('testLiveBtn');
 	els.speedSelect = qs('speedSelect');
 	els.refreshBtn = qs('refreshBtn');
+	els.spamSelect = qs('spamSelect');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -491,6 +508,9 @@ function setupUi() {
 		state.speedMode = els.speedSelect.value;
 	});
 	els.refreshBtn.addEventListener('click', handleRefresh);
+	els.spamSelect.addEventListener('change', () => {
+		state.spamMode = els.spamSelect.value;
+	});
 }
 
 window.addEventListener('DOMContentLoaded', setupUi);
