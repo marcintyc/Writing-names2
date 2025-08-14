@@ -151,41 +151,63 @@ function maybeConfetti(count, name) {
 	window.confetti({ particleCount: Math.min(250, 60 + count * 5), spread: 70, origin: { x: originX, y: 0.2 } });
 }
 
-function handleDeleteEntry(li, text) {
-	if (!li || !text) return;
-	const lower = String(text).toLowerCase();
-	state.blacklist.add(lower);
-	// remove from UI
-	li.remove();
-	// update counts
-	if (state.mode === 'countries') {
-		const c = extractValidCountry(text) || text;
-		const prev = state.countryCounts.get(c) || 0;
-		if (prev > 0) state.countryCounts.set(c, prev - 1);
-	} else {
-		const name = extractValidName(text) || text;
-		const prev = state.nameCounts.get(name) || 0;
-		if (prev > 0) state.nameCounts.set(name, prev - 1);
+function rebuildCountsFromList() {
+	// Recompute counts from visible list items (excluding blacklisted)
+	state.nameCounts = new Map();
+	state.countryCounts = new Map();
+	const items = Array.from(els.list.querySelectorAll('li'));
+	for (const li of items) {
+		const raw = (li.firstChild?.textContent || li.textContent || '').trim();
+		if (!raw) continue;
+		if (state.blacklist.has(raw.toLowerCase())) continue;
+		if (state.mode === 'countries') {
+			const c = extractValidCountry(raw);
+			if (c) {
+				const prev = state.countryCounts.get(c) || 0;
+				state.countryCounts.set(c, prev + 1);
+			}
+		} else {
+			const name = extractValidName(raw);
+			if (name) {
+				const prev = state.nameCounts.get(name) || 0;
+				state.nameCounts.set(name, prev + 1);
+			}
+		}
 	}
 	renderStats();
 }
 
+function removeAllListEntries(text) {
+	const target = String(text || '').toLowerCase().trim();
+	if (!target) return;
+	const items = Array.from(els.list.querySelectorAll('li'));
+	for (const li of items) {
+		const raw = (li.firstChild?.textContent || li.textContent || '').trim();
+		if (raw && raw.toLowerCase() === target) {
+			li.remove();
+		}
+	}
+}
+
+function handleDeleteEntry(li, text) {
+	if (!text) return;
+	const lower = String(text).toLowerCase();
+	state.blacklist.add(lower);
+	if (li && li.remove) li.remove();
+	removeAllListEntries(text);
+	// Remove from pending queue to prevent pending duplicates
+	state.pendingNames = state.pendingNames.filter(t => String(t).toLowerCase() !== lower);
+	rebuildCountsFromList();
+}
+
 function safeDelete(li, text) {
 	try { handleDeleteEntry(li, text); } catch (e) {
-		// Fallback inline if handleDeleteEntry is unavailable for any reason
 		const lower = String(text).toLowerCase();
 		state.blacklist.add(lower);
 		if (li && li.remove) li.remove();
-		if (state.mode === 'countries') {
-			const c = extractValidCountry(text) || text;
-			const prev = state.countryCounts.get(c) || 0;
-			if (prev > 0) state.countryCounts.set(c, prev - 1);
-		} else {
-			const name = extractValidName(text) || text;
-			const prev = state.nameCounts.get(name) || 0;
-			if (prev > 0) state.nameCounts.set(name, prev - 1);
-		}
-		renderStats();
+		removeAllListEntries(text);
+		state.pendingNames = state.pendingNames.filter(t => String(t).toLowerCase() !== lower);
+		rebuildCountsFromList();
 	}
 }
 
