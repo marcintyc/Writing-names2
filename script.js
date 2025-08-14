@@ -27,6 +27,7 @@ const els = {
 	listContainer: null,
 	statusBox: null,
 	statsList: null,
+	testKeyBtn: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -42,6 +43,7 @@ function toggleUiConnected(connected) {
 	els.disconnectBtn.disabled = !connected;
 	els.ytInput.disabled = connected;
 	els.apiKeyInput.disabled = connected;
+	els.testKeyBtn.disabled = connected;
 }
 
 // Typewriter settings
@@ -365,6 +367,29 @@ function disconnectYouTube() {
 	setStatus('Niepołączono z czatem.');
 }
 
+async function testApiKey() {
+	const key = els.apiKeyInput.value.trim();
+	if (!key) { setStatus('Wpisz klucz API, aby go przetestować.'); return; }
+	els.testKeyBtn.disabled = true;
+	setStatus('Testowanie klucza API…');
+	try {
+		const url = `https://www.googleapis.com/youtube/v3/i18nLanguages?part=snippet&hl=pl&key=${encodeURIComponent(key)}`;
+		const res = await fetch(url);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		const data = await res.json();
+		if (Array.isArray(data?.items)) {
+			setStatus('Klucz API wygląda OK.');
+		} else {
+			setStatus('Odpowiedź nieprawidłowa – sprawdź uprawnienia klucza.');
+		}
+	} catch (e) {
+		console.error(e);
+		setStatus('Błąd testu klucza API. Sprawdź ograniczenia i poprawność.');
+	} finally {
+		els.testKeyBtn.disabled = state.connected;
+	}
+}
+
 function setupUi() {
 	els.connectBtn = qs('connectBtn');
 	els.disconnectBtn = qs('disconnectBtn');
@@ -375,6 +400,7 @@ function setupUi() {
 	els.listContainer = qs('listContainer');
 	els.statusBox = qs('statusBox');
 	els.statsList = qs('statsList');
+	els.testKeyBtn = qs('testKeyBtn');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -387,6 +413,7 @@ function setupUi() {
 			els.manualName.value = '';
 		}
 	});
+	els.testKeyBtn.addEventListener('click', testApiKey);
 }
 
 window.addEventListener('DOMContentLoaded', setupUi);
