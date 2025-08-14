@@ -295,11 +295,12 @@ async function pollChatOnce() {
 		if (!msg) continue;
 		if (isLikelyCommand(msg)) continue;
 		const authorId = it?.authorDetails?.channelId || it?.authorDetails?.channelUrl || it?.authorDetails?.displayName || '';
-		if (isAuthorCoolingDown(authorId)) continue;
+		if (typeof isAuthorCoolingDown === 'function' && isAuthorCoolingDown(authorId)) continue;
 		const name = extractValidName(msg);
 		if (!name) continue;
 		appendName(name);
-		markAuthorAccepted(authorId);
+		if (typeof markAuthorAccepted === 'function') markAuthorAccepted(authorId);
+		state.lastUsefulMessageTs = Date.now();
 		appended++;
 	}
 
