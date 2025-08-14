@@ -233,10 +233,10 @@ function isNoiseMessage(message) {
 		'write my name','can you write my name','say my name','name please','name pls','please write my name',
 		'napisz moje imie','napisz moje imię','czy mozesz napisac','czy możesz napisać','napisz moje nazwisko',
 		'hello','hi','hey','hej','siema','cześć','czesc','hola','bonjour','hallo','yo','sup','what\'s up','whats up',
-		'thank you','thanks','dzieki','dzięki','danke','gracias','merci',
-		'what is this','co to jest','wtf','lol','xd','lmao','rofl',
-		'good night','good morning','good evening','dobranoc','dzien dobry','dzień dobry',
-		'i love you','kocham cie','kocham cię','love from','pozdrawiam','shoutout','subscribe','subskrybuj','like','follow'
+		'thank you','thanks','dzieki','dzięki','danke','gracias','merci','thanks for watching','thanks for stream','thank you for stream','love the stream','love your stream',
+		'what is this','co to jest','wtf','lol','xd','lmao','rofl','omg','idk','brb','gtg','g2g','btw','asap','gg','wp','ez','nice','cool','pog','poggers',
+		'subscribe','subscribed','i subscribed','i just subscribed','subskrybuj','isubbed','i subbed','i just subbed','subbed','new sub','new subscriber','hit the bell','turn on notifications','smash like','drop a like',
+		'please','pls','plz','ty','thx','tysm','tyvm','tnx','tks','follow'
 	];
 	if (noisePhrases.some(p => s.includes(p))) return true;
 	if (/^(hi|hello|siema|cześć|czesc|hej|yo|sup|hola)[.!?\s]*$/.test(s)) return true;
