@@ -118,7 +118,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 	align-items: center;
 	gap: 8px;
 }
-.stat-name { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-name { color: var(--text); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stat-count { color: var(--muted); font-weight: 600; }
 .stat-bar {
 	grid-column: 1 / -1;
