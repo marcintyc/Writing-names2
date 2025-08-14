@@ -12,6 +12,7 @@ const state = {
 	currentPollMs: 3000,
 	lastUsefulMessageTs: Date.now(),
 	recentNames: new Map(),
+	authorLastAcceptedAt: new Map(), // New map for author cooldown
 };
 
 const els = {
@@ -130,8 +131,42 @@ function isLikelyCommand(message) {
 	return message.startsWith('!') || message.startsWith('/') || message.startsWith('~');
 }
 
+function normalizeLetters(input) {
+	let s = String(input || '').toLowerCase();
+	try { s = s.replace(/[^\p{L}]+/gu, ''); } catch { s = s.replace(/[^a-zA-ZÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç]+/g, ''); }
+	return s;
+}
+
+function isDiddySpam(message) {
+	const letters = normalizeLetters(message);
+	if (!letters) return false;
+	if (letters.includes('diddy')) return true;
+	if (/^(?:di)+(?:dy)+$/.test(letters)) return true; // e.g. didydidy
+	// Broad fallback for short strings made of only d/i/y with all three present
+	if (letters.length <= 10 && /^[diy]+$/.test(letters) && letters.includes('d') && letters.includes('i') && letters.includes('y')) return true;
+	return false;
+}
+
+function isNoiseMessage(message) {
+	const s = String(message || '').toLowerCase();
+	if (!s) return true;
+	if (s.includes('http://') || s.includes('https://') || s.includes('www.')) return true;
+	// Requests to write/say the name
+	const noisePhrases = [
+		'write my name','can you write my name','say my name','name please','name pls','please write my name',
+		'napisz moje imie','napisz moje imię','czy mozesz napisac','czy możesz napisać','napisz moje nazwisko'
+	];
+	if (noisePhrases.some(p => s.includes(p))) return true;
+	// Greetings-only
+	if (/^(hi|hello|siema|cześć|czesc|hej|yo|sup|hola)[.!?\s]*$/.test(s)) return true;
+	// DIDDY meme
+	if (isDiddySpam(s)) return true;
+	return false;
+}
+
 // Heurystyczne: wyciągnij potencjalne imię (1-3 słowa, litery + polskie znaki, myślnik/apostrof), Title Case
 function extractValidName(message) {
+	if (isNoiseMessage(message)) return null;
 	if (!message) return null;
 	let s = String(message).trim();
 	if (!s) return null;
@@ -157,6 +192,8 @@ function extractValidName(message) {
 	const candidate = titled.join(' ');
 	// Profanity blocklist
 	if (containsProfanity(candidate)) return null;
+	// Diddy again on sanitized
+	if (isDiddySpam(candidate)) return null;
 	return candidate;
 }
 
@@ -225,9 +262,12 @@ async function pollChatOnce() {
 		const msg = it?.snippet?.displayMessage || '';
 		if (!msg) continue;
 		if (isLikelyCommand(msg)) continue;
+		const authorId = it?.authorDetails?.channelId || it?.authorDetails?.channelUrl || it?.authorDetails?.displayName || '';
+		if (isAuthorCoolingDown(authorId)) continue;
 		const name = extractValidName(msg);
 		if (!name) continue;
 		appendName(name);
+		markAuthorAccepted(authorId);
 		appended++;
 	}
 
