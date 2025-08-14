@@ -44,6 +44,7 @@ const els = {
 	statsTitle: null,
 	lastSub: null,
 	softRefreshBtn: null,
+	hamburgerBtn: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -699,6 +700,7 @@ function setupUi() {
 	els.statsTitle = qs('statsTitle');
 	els.lastSub = qs('lastSub');
 	els.softRefreshBtn = qs('softRefreshBtn');
+	els.hamburgerBtn = qs('hamburgerBtn');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -728,6 +730,11 @@ function setupUi() {
 		if (els.modeHint) els.modeHint.textContent = state.mode === 'countries' ? 'Napisz na czacie nazwę swojego kraju (po angielsku) albo wpisz poniżej i Enter.' : 'Napisz imię na czacie albo wpisz poniżej i Enter.';
 		renderStats();
 	});
+	if (els.hamburgerBtn) {
+		els.hamburgerBtn.addEventListener('click', () => {
+			document.body.classList.toggle('show-panels');
+		});
+	}
 }
 
 window.addEventListener('DOMContentLoaded', setupUi);

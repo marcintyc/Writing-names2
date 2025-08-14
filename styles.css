@@ -254,9 +254,18 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .rank-num { display:inline-block; min-width: 20px; text-align:center; margin-right: 6px; color: var(--muted); font-weight: 700; }
 .stat-name > span { vertical-align: middle; }
 
+.hamburger { display: none; margin-right: 8px; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+
 @media (max-width: 900px) {
-	.layout { grid-template-columns: 1fr; }
-	.controls { flex-wrap: wrap; }
+	.layout-3 { grid-template-columns: 1fr; }
+	.panel.stats { order: 3; }
+	.hamburger { display: inline-block; }
+	.controls { display: none; }
+	body.show-panels .controls { display: grid; grid-auto-flow: row; gap: 8px; padding: 8px 16px; }
+	body.show-panels .layout-3 { grid-template-columns: 1fr; }
+	/* Fullscreen names by default on mobile */
+	.panel.left, .panel.stats { display: none; }
+	body.show-panels .panel.left, body.show-panels .panel.stats { display: block; }
 	.field input { min-width: 160px; }
 	.list-container { height: calc(100vh - 260px); }
 }
