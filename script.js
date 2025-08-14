@@ -14,9 +14,12 @@ const state = {
 	recentNames: new Map(),
 	authorLastAcceptedAt: new Map(), // New map for author cooldown
 	nameCounts: new Map(),
+	countryCounts: new Map(),
 	confettiEnabled: true,
 	speedMode: 'normal',
 	spamMode: 'normal',
+	mode: 'names',
+	lastSubscriberName: '',
 };
 
 const els = {
@@ -35,6 +38,11 @@ const els = {
 	refreshBtn: null,
 	spamSelect: null,
 	eventToasts: null,
+	modeSelect: null,
+	modeTitle: null,
+	modeHint: null,
+	statsTitle: null,
+	lastSub: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -73,10 +81,9 @@ function getTypingDelayFor(text) {
 	return base;
 }
 
-function appendName(name) {
-	const trimmed = String(name || '').trim();
+function appendEntry(text) {
+	const trimmed = String(text || '').trim();
 	if (!trimmed) return;
-	incrementNameCount(trimmed);
 	state.pendingNames.push(trimmed);
 	if (!state.typingInProgress) {
 		processTypingQueue();
@@ -91,9 +98,18 @@ function incrementNameCount(name) {
 	maybeConfetti(next, name);
 }
 
+function incrementCountryCount(country) {
+	const current = state.countryCounts.get(country) || 0;
+	const next = current + 1;
+	state.countryCounts.set(country, next);
+	renderStats();
+	maybeConfetti(next, country);
+}
+
 function renderStats() {
 	if (!els.statsList) return;
-	const entries = Array.from(state.nameCounts.entries());
+	let map = state.mode === 'countries' ? state.countryCounts : state.nameCounts;
+	const entries = Array.from(map.entries());
 	if (entries.length === 0) { els.statsList.innerHTML = ''; return; }
 	entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 	const top = entries.slice(0, 10);
@@ -110,6 +126,9 @@ function renderStats() {
 		`;
 	}).join('');
 	els.statsList.innerHTML = rows;
+	if (els.statsTitle) {
+		els.statsTitle.textContent = state.mode === 'countries' ? 'Top kraje' : 'Top imiona';
+	}
 }
 
 function maybeConfetti(count, name) {
@@ -257,6 +276,71 @@ function containsProfanity(text) {
 	return bad.some(w => s.includes(w));
 }
 
+// Countries DB and aliases
+const COUNTRY_NAMES = new Set([
+	'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan',
+	'Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi',
+	'Cambodia','Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica','Cote d\'Ivoire','Croatia','Cuba','Cyprus','Czech Republic','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic',
+	'Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia',
+	'Fiji','Finland','France',
+	'Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana',
+	'Haiti','Honduras','Hungary',
+	'Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy',
+	'Jamaica','Japan','Jordan',
+	'Kazakhstan','Kenya','Kiribati','Kosovo','Kuwait','Kyrgyzstan',
+	'Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg',
+	'Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar',
+	'Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway',
+	'Oman',
+	'Pakistan','Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal',
+	'Qatar',
+	'Romania','Russia','Rwanda',
+	'Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria',
+	'Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu',
+	'Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan',
+	'Vanuatu','Vatican City','Venezuela','Vietnam',
+	'Yemen',
+	'Zambia','Zimbabwe'
+]);
+
+const COUNTRY_ALIASES = new Map([
+	['USA','United States'],['U.S.A.','United States'],['US','United States'],['U.S.','United States'],['America','United States'],
+	['UK','United Kingdom'],['U.K.','United Kingdom'],['Great Britain','United Kingdom'],['Britain','United Kingdom'],
+	['UAE','United Arab Emirates'],['Emirates','United Arab Emirates'],
+	['DRC','Democratic Republic of the Congo'],['Congo-Kinshasa','Democratic Republic of the Congo'],
+	['Congo-Brazzaville','Congo'],
+	['South Korea','South Korea'],['Korea','South Korea'],
+	['North Korea','North Korea'],
+	['Ivory Coast','Cote d\'Ivoire'],
+	['Czechia','Czech Republic'],
+	['Russia','Russia'],['Vatican','Vatican City']
+]);
+
+function extractValidCountry(message) {
+	if (!message) return null;
+	let s = String(message).trim();
+	if (!s) return null;
+	// remove symbols except letters and spaces
+	s = s.replace(/[^A-Za-z\s\-\.]/g, ' ').replace(/\s+/g, ' ').trim();
+	const tokens = s.split(' ');
+	// try exact alias match on whole string (up to 3 words)
+	const tryWhole = tokens.slice(0, 4).join(' ').trim();
+	const normWhole = tryWhole.replace(/\.+/g,'').trim();
+	const alias = COUNTRY_ALIASES.get(normWhole) || COUNTRY_ALIASES.get(normWhole.toUpperCase());
+	if (alias && COUNTRY_NAMES.has(alias)) return alias;
+	// try longest n-gram up to 4 tokens
+	for (let n = Math.min(4, tokens.length); n >= 1; n--) {
+		for (let i = 0; i + n <= tokens.length; i++) {
+			const frag = tokens.slice(i, i+n).join(' ').replace(/\.+/g,'').trim();
+			const titled = frag.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+			if (COUNTRY_NAMES.has(titled)) return titled;
+			const a = COUNTRY_ALIASES.get(frag) || COUNTRY_ALIASES.get(frag.toUpperCase());
+			if (a && COUNTRY_NAMES.has(a)) return a;
+		}
+	}
+	return null;
+}
+
 function extractVideoId(input) {
 	const raw = (input || '').trim();
 	if (!raw) return '';
@@ -363,10 +447,14 @@ function handleLiveChatItem(it) {
 		return 'event';
 	}
 	if (type && /sponsor|member/i.test(type)) {
+		state.lastSubscriberName = authorName;
+		if (els.lastSub) els.lastSub.textContent = `Ostatni sub/członek: ${authorName}`;
 		showToast(`${authorName} dołączył jako członek!`, 'Dziękujemy za wsparcie!', '#19c37d', true);
 		return 'event';
 	}
 	if (isSponsor) {
+		state.lastSubscriberName = authorName;
+		if (els.lastSub) els.lastSub.textContent = `Ostatni sub/członek: ${authorName}`;
 		showToast(`${authorName} just subscribed!`, 'Witamy w ekipie!', '#19c37d', true);
 		return 'event';
 	}
@@ -388,9 +476,17 @@ async function pollChatOnce() {
 			if (isLikelyCommand(msg)) continue;
 			const authorId = it?.authorDetails?.channelId || it?.authorDetails?.channelUrl || it?.authorDetails?.displayName || '';
 			if (typeof isAuthorCoolingDown === 'function' && isAuthorCoolingDown(authorId)) continue;
-			const name = extractValidName(msg);
-			if (!name) continue;
-			appendName(name);
+			if (state.mode === 'countries') {
+				const country = extractValidCountry(msg);
+				if (!country) continue;
+				appendEntry(country);
+				incrementCountryCount(country);
+			} else {
+				const name = extractValidName(msg);
+				if (!name) continue;
+				appendEntry(name);
+				incrementNameCount(name);
+			}
 			if (typeof markAuthorAccepted === 'function') markAuthorAccepted(authorId);
 			state.lastUsefulMessageTs = Date.now();
 			appended++;
@@ -425,7 +521,6 @@ async function pollChatLoop() {
 function onPollError(err) {
 	console.error(err);
 	setStatus('Błąd odczytu czatu. Sprawdz klucz API i ID filmu.');
-	// spróbuj ponownie po chwili
 	state.pollTimeoutId = setTimeout(() => pollChatLoop().catch(onPollError), 3000);
 }
 
@@ -525,6 +620,7 @@ async function testLive() {
 function clearUiAndState() {
 	state.pendingNames = [];
 	state.nameCounts = new Map();
+	state.countryCounts = new Map();
 	state.recentNames = new Map();
 	state.authorLastAcceptedAt = new Map();
 	els.list.innerHTML = '';
@@ -534,7 +630,6 @@ function clearUiAndState() {
 async function handleRefresh() {
 	clearUiAndState();
 	if (state.connected) {
-		// reconnect keeps inputs
 		disconnectYouTube();
 		await new Promise(r => setTimeout(r, 300));
 		connectYouTube();
@@ -559,6 +654,11 @@ function setupUi() {
 	els.refreshBtn = qs('refreshBtn');
 	els.spamSelect = qs('spamSelect');
 	els.eventToasts = qs('eventToasts');
+	els.modeSelect = qs('modeSelect');
+	els.modeTitle = qs('modeTitle');
+	els.modeHint = qs('modeHint');
+	els.statsTitle = qs('statsTitle');
+	els.lastSub = qs('lastSub');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -566,19 +666,26 @@ function setupUi() {
 	els.apiKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connectYouTube(); });
 	els.manualName.addEventListener('keydown', (e) => {
 		if (e.key === 'Enter') {
-			const name = extractValidName(els.manualName.value);
-			if (name) appendName(name);
+			if (state.mode === 'countries') {
+				const c = extractValidCountry(els.manualName.value);
+				if (c) { appendEntry(c); incrementCountryCount(c); }
+			} else {
+				const name = extractValidName(els.manualName.value);
+				if (name) { appendEntry(name); incrementNameCount(name); }
+			}
 			els.manualName.value = '';
 		}
 	});
 	els.testKeyBtn.addEventListener('click', testApiKey);
 	els.testLiveBtn.addEventListener('click', testLive);
-	els.speedSelect.addEventListener('change', () => {
-		state.speedMode = els.speedSelect.value;
-	});
+	els.speedSelect.addEventListener('change', () => { state.speedMode = els.speedSelect.value; });
 	els.refreshBtn.addEventListener('click', handleRefresh);
-	els.spamSelect.addEventListener('change', () => {
-		state.spamMode = els.spamSelect.value;
+	els.spamSelect.addEventListener('change', () => { state.spamMode = els.spamSelect.value; });
+	els.modeSelect.addEventListener('change', () => {
+		state.mode = els.modeSelect.value;
+		if (els.modeTitle) els.modeTitle.textContent = state.mode === 'countries' ? 'Tryb: Kraje' : 'Tryb: Imiona';
+		if (els.modeHint) els.modeHint.textContent = state.mode === 'countries' ? 'Napisz na czacie nazwę swojego kraju (po angielsku) albo wpisz poniżej i Enter.' : 'Napisz imię na czacie albo wpisz poniżej i Enter.';
+		renderStats();
 	});
 }
 

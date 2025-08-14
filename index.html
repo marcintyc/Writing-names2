@@ -14,6 +14,13 @@
 		<div class="brand">Ściana Imion</div>
 		<div class="controls">
 			<label class="field">
+				<span>Tryb</span>
+				<select id="modeSelect">
+					<option value="names" selected>Imiona</option>
+					<option value="countries">Kraje</option>
+				</select>
+			</label>
+			<label class="field">
 				<span>YouTube Live URL lub ID</span>
 				<input id="ytInput" type="text" placeholder="np. https://youtu.be/XXXX lub ID filmu" autocomplete="off" />
 			</label>
@@ -48,13 +55,14 @@
 
 	<main class="layout layout-3">
 		<section class="panel left">
-			<h2>Tryb testowy</h2>
-			<p>Wpisz imię i naciśnij Enter – pojawi się na liście po prawej.</p>
-			<input id="manualName" class="manual" type="text" placeholder="Wpisz imię i Enter…" autocomplete="off" />
+			<h2 id="modeTitle">Tryb: Imiona</h2>
+			<p id="modeHint">Napisz imię na czacie albo wpisz poniżej i wciśnij Enter.</p>
+			<input id="manualName" class="manual" type="text" placeholder="Wpisz i Enter…" autocomplete="off" />
 			<div class="status" id="statusBox">Niepołączono z czatem.</div>
+			<div class="last-sub" id="lastSub">Ostatni sub/członek: —</div>
 			<div class="hints">
-				<p><strong>Wskazówka</strong>: Odczyt czatu z YouTube wymaga klucza API (YouTube Data API v3). Włącz w Google Cloud i ogranicz do swojego hosta (np. GitHub Pages).</p>
-				<p><strong>Filtry</strong>: Ignorujemy komendy (! / ~), wulgaryzmy, linki, prośby typu „napisz moje imię”, oraz mem „DIDDY”.</p>
+				<p><strong>Wskazówka</strong>: W trybie „Kraje” liczą się tylko poprawne nazwy krajów po angielsku (np. Poland, Germany, United States).</p>
+				<p><strong>Filtry</strong>: Ignorujemy komendy (! / ~), wulgaryzmy, linki i mem „DIDDY”.</p>
 			</div>
 		</section>
 		<section class="panel right">
@@ -64,7 +72,7 @@
 			</div>
 		</section>
 		<aside class="panel stats">
-			<h2>Top imiona</h2>
+			<h2 id="statsTitle">Top imiona</h2>
 			<ul id="statsList" class="stats-list"></ul>
 		</aside>
 	</main>

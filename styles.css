@@ -244,6 +244,8 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 	100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
+.last-sub { margin-top: 10px; font-size: 13px; color: var(--muted); }
+
 @media (max-width: 900px) {
 	.layout { grid-template-columns: 1fr; }
 	.controls { flex-wrap: wrap; }
