@@ -38,9 +38,9 @@ function toggleUiConnected(connected) {
 }
 
 // Typewriter settings
-const TYPING_DELAY_SHORT_MS = 25;
-const TYPING_DELAY_MED_MS = 35;
-const TYPING_DELAY_LONG_MS = 45;
+const TYPING_DELAY_SHORT_MS = 70; // for long texts (faster but still human-like)
+const TYPING_DELAY_MED_MS = 90;  // medium length
+const TYPING_DELAY_LONG_MS = 110; // short texts (slower, more readable)
 
 function getTypingDelayFor(text) {
 	const len = (text || '').length;
@@ -83,11 +83,17 @@ async function processTypingQueue() {
 }
 
 async function typeOutText(textNode, caretEl, fullText) {
-	const delay = getTypingDelayFor(fullText);
+	const baseDelay = getTypingDelayFor(fullText);
 	const chars = Array.from(fullText);
 	for (let i = 0; i < chars.length; i++) {
 		textNode.textContent += chars[i];
-		await new Promise((r) => setTimeout(r, delay));
+		// jitter: +-40% around base
+		let jitter = baseDelay * (0.6 + Math.random() * 0.8);
+		// small extra pause after spaces and punctuation
+		if (/\s|[.,!?;:]/.test(chars[i])) {
+			jitter += 80 + Math.random() * 140;
+		}
+		await new Promise((r) => setTimeout(r, Math.round(jitter)));
 		requestAnimationFrame(scrollLastToCenter);
 	}
 	if (caretEl && caretEl.parentNode) {
