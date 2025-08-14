@@ -151,6 +151,44 @@ function maybeConfetti(count, name) {
 	window.confetti({ particleCount: Math.min(250, 60 + count * 5), spread: 70, origin: { x: originX, y: 0.2 } });
 }
 
+function handleDeleteEntry(li, text) {
+	if (!li || !text) return;
+	const lower = String(text).toLowerCase();
+	state.blacklist.add(lower);
+	// remove from UI
+	li.remove();
+	// update counts
+	if (state.mode === 'countries') {
+		const c = extractValidCountry(text) || text;
+		const prev = state.countryCounts.get(c) || 0;
+		if (prev > 0) state.countryCounts.set(c, prev - 1);
+	} else {
+		const name = extractValidName(text) || text;
+		const prev = state.nameCounts.get(name) || 0;
+		if (prev > 0) state.nameCounts.set(name, prev - 1);
+	}
+	renderStats();
+}
+
+function safeDelete(li, text) {
+	try { handleDeleteEntry(li, text); } catch (e) {
+		// Fallback inline if handleDeleteEntry is unavailable for any reason
+		const lower = String(text).toLowerCase();
+		state.blacklist.add(lower);
+		if (li && li.remove) li.remove();
+		if (state.mode === 'countries') {
+			const c = extractValidCountry(text) || text;
+			const prev = state.countryCounts.get(c) || 0;
+			if (prev > 0) state.countryCounts.set(c, prev - 1);
+		} else {
+			const name = extractValidName(text) || text;
+			const prev = state.nameCounts.get(name) || 0;
+			if (prev > 0) state.nameCounts.set(name, prev - 1);
+		}
+		renderStats();
+	}
+}
+
 async function processTypingQueue() {
 	if (state.typingInProgress) return;
 	state.typingInProgress = true;
@@ -170,7 +208,7 @@ async function processTypingQueue() {
 			del.className = 'name-delete';
 			del.type = 'button';
 			del.textContent = '×';
-			del.addEventListener('click', () => handleDeleteEntry(li, nextText));
+			del.addEventListener('click', () => safeDelete(li, nextText));
 			li.appendChild(del);
 			els.list.appendChild(li);
 
