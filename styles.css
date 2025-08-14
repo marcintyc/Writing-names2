@@ -274,6 +274,15 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .hamburger { display: none; margin-right: 8px; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
 
+/* Font presets for name list */
+.font-solway .name-list li { font-family: 'Solway', 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
+.font-caveat .name-list li { font-family: 'Caveat', 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
+.font-dancing .name-list li { font-family: 'Dancing Script', 'Poppins', system-ui; }
+.font-lora .name-list li { font-family: 'Lora', 'Poppins', system-ui; }
+.font-montserrat .name-list li { font-family: 'Montserrat', 'Poppins', system-ui; }
+.font-shadows .name-list li { font-family: 'Shadows Into Light', 'Poppins', system-ui; }
+.font-greatvibes .name-list li { font-family: 'Great Vibes', 'Poppins', system-ui; }
+
 @media (max-width: 900px) {
 	.layout-3 { grid-template-columns: 1fr; }
 	.panel.stats { order: 3; }

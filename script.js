@@ -46,6 +46,7 @@ const els = {
 	lastSub: null,
 	softRefreshBtn: null,
 	hamburgerBtn: null,
+	fontSelect: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -773,6 +774,7 @@ function setupUi() {
 	els.lastSub = qs('lastSub');
 	els.softRefreshBtn = qs('softRefreshBtn');
 	els.hamburgerBtn = qs('hamburgerBtn');
+	els.fontSelect = qs('fontSelect');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -806,6 +808,22 @@ function setupUi() {
 		els.hamburgerBtn.addEventListener('click', () => {
 			document.body.classList.toggle('show-panels');
 		});
+	}
+	if (els.fontSelect) {
+		const applyFontClass = (val) => {
+			document.body.classList.remove('font-solway','font-caveat','font-dancing','font-lora','font-montserrat','font-shadows','font-greatvibes');
+			switch (val) {
+				case 'caveat': document.body.classList.add('font-caveat'); break;
+				case 'dancing': document.body.classList.add('font-dancing'); break;
+				case 'lora': document.body.classList.add('font-lora'); break;
+				case 'montserrat': document.body.classList.add('font-montserrat'); break;
+				case 'shadows': document.body.classList.add('font-shadows'); break;
+				case 'greatvibes': document.body.classList.add('font-greatvibes'); break;
+				default: document.body.classList.add('font-solway'); break;
+			}
+		};
+		applyFontClass(els.fontSelect.value || 'solway');
+		els.fontSelect.addEventListener('change', () => applyFontClass(els.fontSelect.value));
 	}
 }
 
