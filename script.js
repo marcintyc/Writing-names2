@@ -28,6 +28,7 @@ const els = {
 	statusBox: null,
 	statsList: null,
 	testKeyBtn: null,
+	testLiveBtn: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -390,6 +391,37 @@ async function testApiKey() {
 	}
 }
 
+function isAuthorCoolingDown(authorId) {
+	if (!authorId) return false;
+	const now = Date.now();
+	const last = state.authorLastAcceptedAt?.get(authorId) || 0;
+	return (now - last) < 5000; // 5s cooldown per author
+}
+
+function markAuthorAccepted(authorId) {
+	if (!authorId) return;
+	if (!state.authorLastAcceptedAt) state.authorLastAcceptedAt = new Map();
+	state.authorLastAcceptedAt.set(authorId, Date.now());
+}
+
+async function testLive() {
+	const key = els.apiKeyInput.value.trim();
+	const videoInput = els.ytInput.value.trim();
+	if (!key) return setStatus('Podaj klucz API do testu LIVE.');
+	if (!videoInput) return setStatus('Podaj URL lub ID filmu do testu LIVE.');
+	const videoId = extractVideoId(videoInput);
+	if (!videoId) return setStatus('Nie rozpoznano ID filmu.');
+	setStatus('Sprawdzanie liveChatId dla tego wideo…');
+	try {
+		const chatId = await fetchLiveChatId(videoId, key);
+		if (chatId) setStatus(`OK: liveChatId jest dostępne dla ${videoId}.`);
+		else setStatus('Nie znaleziono liveChatId. Transmisja może nie być na żywo.');
+	} catch (e) {
+		console.error(e);
+		setStatus('Błąd testu LIVE. Czy film jest na żywo i klucz API ma dostęp do YouTube Data API v3?');
+	}
+}
+
 function setupUi() {
 	els.connectBtn = qs('connectBtn');
 	els.disconnectBtn = qs('disconnectBtn');
@@ -401,6 +433,7 @@ function setupUi() {
 	els.statusBox = qs('statusBox');
 	els.statsList = qs('statsList');
 	els.testKeyBtn = qs('testKeyBtn');
+	els.testLiveBtn = qs('testLiveBtn');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -414,6 +447,7 @@ function setupUi() {
 		}
 	});
 	els.testKeyBtn.addEventListener('click', testApiKey);
+	els.testLiveBtn.addEventListener('click', testLive);
 }
 
 window.addEventListener('DOMContentLoaded', setupUi);
