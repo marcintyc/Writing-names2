@@ -308,7 +308,7 @@ async function pollChatOnceInternal(pageToken) {
 	return data;
 }
 
-function showToast(headline, subline, accent = 'var(--accent)') {
+function showToast(headline, subline, accent = 'var(--accent)', withFanfare = false) {
 	const box = els.eventToasts;
 	if (!box) return;
 	const t = document.createElement('div');
@@ -317,10 +317,36 @@ function showToast(headline, subline, accent = 'var(--accent)') {
 	box.appendChild(t);
 	setTimeout(() => {
 		if (typeof window.confetti === 'function') {
-			window.confetti({ particleCount: 180, spread: 70, origin: { x: 0.5, y: 0.3 } });
+			window.confetti({ particleCount: 220, spread: 80, origin: { x: 0.5, y: 0.3 } });
+		}
+		if (withFanfare) {
+			try { playFanfare(); } catch {}
 		}
 	}, 50);
-	setTimeout(() => { t.remove(); }, 6000);
+	setTimeout(() => { t.remove(); }, 6500);
+}
+
+function playFanfare() {
+	const AudioCtx = window.AudioContext || window.webkitAudioContext;
+	if (!AudioCtx) return;
+	const ctx = new AudioCtx();
+	const now = ctx.currentTime;
+	function beep(freq, t0, dur, gain = 0.08) {
+		const o = ctx.createOscillator();
+		const g = ctx.createGain();
+		o.type = 'triangle';
+		o.frequency.value = freq;
+		g.gain.setValueAtTime(0, now + t0);
+		g.gain.linearRampToValueAtTime(gain, now + t0 + 0.02);
+		g.gain.exponentialRampToValueAtTime(0.0001, now + t0 + dur);
+		o.connect(g).connect(ctx.destination);
+		o.start(now + t0);
+		o.stop(now + t0 + dur + 0.05);
+	}
+	// Simple 3-note fanfare
+	beep(523.25, 0.00, 0.25); // C5
+	beep(659.25, 0.28, 0.25); // E5
+	beep(783.99, 0.56, 0.35, 0.1); // G5
 }
 
 function handleLiveChatItem(it) {
@@ -328,16 +354,22 @@ function handleLiveChatItem(it) {
 	const authorName = it?.authorDetails?.displayName || 'Ktoś';
 	const isSponsor = !!it?.authorDetails?.isChatSponsor;
 	const type = it?.snippet?.type || it?.snippet?.messageType || '';
-	// YouTube Data API ma typy jak: superChatEvent, newSponsorEvent, messageDeletedEvent, etc.
+	const superChat = it?.snippet?.superChatDetails;
+	if (superChat) {
+		const amount = superChat?.amountDisplayString || '';
+		const scMsg = superChat?.userComment || '';
+		const sub = scMsg ? `“${scMsg}”` : 'Dziękujemy za wsparcie!';
+		showToast(`${authorName} – Super Chat ${amount}`, sub, '#ffcc00', true);
+		return 'event';
+	}
 	if (type && /sponsor|member/i.test(type)) {
-		showToast(`${authorName} dołączył jako członek!`, 'Dziękujemy za wsparcie!', '#19c37d');
+		showToast(`${authorName} dołączył jako członek!`, 'Dziękujemy za wsparcie!', '#19c37d', true);
 		return 'event';
 	}
 	if (isSponsor) {
-		showToast(`${authorName} just subscribed!`, 'Witamy w ekipie!', '#19c37d');
+		showToast(`${authorName} just subscribed!`, 'Witamy w ekipie!', '#19c37d', true);
 		return 'event';
 	}
-	// W przyszłości można też obsłużyć superchats: snippet.superChatDetails
 	return 'message';
 }
 
@@ -345,6 +377,7 @@ async function pollChatOnce() {
 	if (!state.liveChatId || !state.apiKey) return;
 	let data = await pollChatOnceInternal(state.nextPageToken);
 	let appended = 0;
+	let pagesFetched = 0;
 	while (true) {
 		const items = Array.isArray(data.items) ? data.items : [];
 		for (const it of items) {
@@ -363,13 +396,13 @@ async function pollChatOnce() {
 			appended++;
 		}
 		state.nextPageToken = data.nextPageToken;
-		if (data.nextPageToken && items.length >= 150) {
+		pagesFetched++;
+		if (data.nextPageToken && pagesFetched < 10) {
 			data = await pollChatOnceInternal(data.nextPageToken);
 			continue;
 		}
 		break;
 	}
-
 	const recommended = Number(data.pollingIntervalMillis || 1500);
 	const POLL_MIN_MS = 5000;
 	const POLL_MAX_MS = 15000;
