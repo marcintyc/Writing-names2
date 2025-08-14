@@ -180,7 +180,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 	padding: 18px 10px;
 	color: #ffffff;
 	text-shadow: 0 6px 18px rgba(0,0,0,0.35);
-	font-family: 'Caveat', 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+	font-family: 'Solway', 'Caveat', 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
 }
 
 .name-list li:nth-child(odd) { color: #dfe6ff; }
