@@ -7,6 +7,8 @@ const state = {
 	liveChatId: '',
 	nextPageToken: undefined,
 	pollTimeoutId: null,
+	typingInProgress: false,
+	pendingNames: [],
 };
 
 const els = {
@@ -35,13 +37,62 @@ function toggleUiConnected(connected) {
 	els.apiKeyInput.disabled = connected;
 }
 
+// Typewriter settings
+const TYPING_DELAY_SHORT_MS = 25;
+const TYPING_DELAY_MED_MS = 35;
+const TYPING_DELAY_LONG_MS = 45;
+
+function getTypingDelayFor(text) {
+	const len = (text || '').length;
+	if (len > 20) return TYPING_DELAY_SHORT_MS;
+	if (len > 12) return TYPING_DELAY_MED_MS;
+	return TYPING_DELAY_LONG_MS;
+}
+
 function appendName(name) {
 	const trimmed = String(name || '').trim();
 	if (!trimmed) return;
-	const li = document.createElement('li');
-	li.textContent = trimmed;
-	els.list.appendChild(li);
-	requestAnimationFrame(scrollLastToCenter);
+	state.pendingNames.push(trimmed);
+	if (!state.typingInProgress) {
+		processTypingQueue();
+	}
+}
+
+async function processTypingQueue() {
+	if (state.typingInProgress) return;
+	state.typingInProgress = true;
+	try {
+		while (state.pendingNames.length > 0) {
+			const nextText = state.pendingNames.shift();
+			const li = document.createElement('li');
+			li.classList.add('typing');
+			const textNode = document.createTextNode('');
+			const caret = document.createElement('span');
+			caret.className = 'typing-caret';
+			li.appendChild(textNode);
+			li.appendChild(caret);
+			els.list.appendChild(li);
+
+			await typeOutText(textNode, caret, nextText);
+
+			li.classList.remove('typing');
+		}
+	} finally {
+		state.typingInProgress = false;
+	}
+}
+
+async function typeOutText(textNode, caretEl, fullText) {
+	const delay = getTypingDelayFor(fullText);
+	const chars = Array.from(fullText);
+	for (let i = 0; i < chars.length; i++) {
+		textNode.textContent += chars[i];
+		await new Promise((r) => setTimeout(r, delay));
+		requestAnimationFrame(scrollLastToCenter);
+	}
+	if (caretEl && caretEl.parentNode) {
+		caretEl.parentNode.removeChild(caretEl);
+	}
 }
 
 function scrollLastToCenter() {
