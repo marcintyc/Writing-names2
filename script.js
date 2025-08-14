@@ -10,6 +10,8 @@ const state = {
 	typingInProgress: false,
 	pendingNames: [],
 	currentPollMs: 3000,
+	lastUsefulMessageTs: Date.now(),
+	recentNames: new Map(),
 };
 
 const els = {
@@ -53,6 +55,18 @@ function getTypingDelayFor(text) {
 function appendName(name) {
 	const trimmed = String(name || '').trim();
 	if (!trimmed) return;
+	const key = trimmed.toLowerCase();
+	const now = Date.now();
+	const recentAt = state.recentNames.get(key) || 0;
+	if (now - recentAt < 10000) {
+		return; // ignore duplicates within 10s
+	}
+	state.recentNames.set(key, now);
+	// prune old dedupe entries (>5 min)
+	for (const [k, ts] of state.recentNames) {
+		if (now - ts > 5 * 60 * 1000) state.recentNames.delete(k);
+	}
+	state.lastUsefulMessageTs = now;
 	state.pendingNames.push(trimmed);
 	if (!state.typingInProgress) {
 		processTypingQueue();
@@ -116,6 +130,46 @@ function isLikelyCommand(message) {
 	return message.startsWith('!') || message.startsWith('/') || message.startsWith('~');
 }
 
+// Heurystyczne: wyciągnij potencjalne imię (1-3 słowa, litery + polskie znaki, myślnik/apostrof), Title Case
+function extractValidName(message) {
+	if (!message) return null;
+	let s = String(message).trim();
+	if (!s) return null;
+	// Usuń wszystko poza literami (unicode), spacjami, myślnikiem i apostrofem
+	try {
+		s = s.replace(/[^\p{L}\s'\-]/gu, '');
+	} catch {
+		// Fallback bez \p{L}
+		s = s.replace(/[^A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]/g, '');
+	}
+	// Redukuj wielokrotne spacje
+	s = s.replace(/\s+/g, ' ').trim();
+	if (!s) return null;
+	const tokens = s.split(' ');
+	if (tokens.length < 1 || tokens.length > 3) return null;
+	// Każdy token 2-20 znaków, zaczyna się literą
+	for (const t of tokens) {
+		if (t.length < 2 || t.length > 20) return null;
+		if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç]/.test(t)) return null;
+	}
+	// Title Case
+	const titled = tokens.map(tok => tok.charAt(0).toUpperCase() + tok.slice(1).toLowerCase());
+	const candidate = titled.join(' ');
+	// Profanity blocklist
+	if (containsProfanity(candidate)) return null;
+	return candidate;
+}
+
+function containsProfanity(text) {
+	const s = text.toLowerCase();
+	// Minimalna lista (PL/EN). Można rozszerzyć wedle potrzeb.
+	const bad = [
+		'kurwa','chuj','pizda','jebac','jebać','spierdalaj','debil','idiota','szmata','frajer',
+		'fuck','shit','bitch','asshole','faggot','nigger','cunt','slut','bastard','retard'
+	];
+	return bad.some(w => s.includes(w));
+}
+
 function extractVideoId(input) {
 	const raw = (input || '').trim();
 	if (!raw) return '';
@@ -166,20 +220,28 @@ async function pollChatOnce() {
 	const data = await res.json();
 
 	const items = Array.isArray(data.items) ? data.items : [];
+	let appended = 0;
 	for (const it of items) {
 		const msg = it?.snippet?.displayMessage || '';
 		if (!msg) continue;
 		if (isLikelyCommand(msg)) continue;
-		appendName(msg);
+		const name = extractValidName(msg);
+		if (!name) continue;
+		appendName(name);
+		appended++;
 	}
 
 	state.nextPageToken = data.nextPageToken;
 	const recommended = Number(data.pollingIntervalMillis || 1500);
-	const POLL_MIN_MS = 3000;
-	const POLL_MAX_MS = 10000;
+	const POLL_MIN_MS = 5000;
+	const POLL_MAX_MS = 15000;
 	let nextMs = Math.max(recommended, POLL_MIN_MS);
-	if (items.length === 0) {
+	if (appended === 0) {
 		nextMs = Math.min(POLL_MAX_MS, Math.floor((state.currentPollMs || nextMs) * 1.5));
+	}
+	// Jeżeli od ostatniego zaakceptowanego imienia minęła >1 min, przejdź do max
+	if (Date.now() - state.lastUsefulMessageTs > 60000) {
+		nextMs = POLL_MAX_MS;
 	}
 	state.currentPollMs = nextMs;
 	state.pollTimeoutId = setTimeout(() => pollChatLoop().catch(onPollError), state.currentPollMs);
@@ -250,7 +312,8 @@ function setupUi() {
 	els.apiKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connectYouTube(); });
 	els.manualName.addEventListener('keydown', (e) => {
 		if (e.key === 'Enter') {
-			appendName(els.manualName.value);
+			const name = extractValidName(els.manualName.value);
+			if (name) appendName(name);
 			els.manualName.value = '';
 		}
 	});
