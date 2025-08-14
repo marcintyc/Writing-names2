@@ -114,7 +114,7 @@ function renderStats() {
 	if (!els.statsList) return;
 	let map = state.mode === 'countries' ? state.countryCounts : state.nameCounts;
 	const entries = Array.from(map.entries());
-	if (entries.length === 0) { els.statsList.innerHTML = ''; if (els.statsTitle) els.statsTitle.textContent = state.mode === 'countries' ? 'Top kraje' : 'Top imiona'; return; }
+	if (entries.length === 0) { els.statsList.innerHTML = ''; if (els.statsTitle) els.statsTitle.textContent = state.mode === 'countries' ? 'Countries Rank' : 'Top imiona'; return; }
 	entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 	const top = entries.slice(0, 10);
 	const max = Math.max(...top.map(([, c]) => c));
@@ -139,7 +139,7 @@ function renderStats() {
 	rest.forEach((e, idx) => { html += makeRow(e[0], e[1], { rank: idx + 4 }); });
 	els.statsList.innerHTML = html;
 	if (els.statsTitle) {
-		els.statsTitle.textContent = state.mode === 'countries' ? 'Top kraje' : 'Top imiona';
+		els.statsTitle.textContent = state.mode === 'countries' ? 'Countries Rank' : 'Top imiona';
 	}
 }
 
@@ -788,8 +788,8 @@ function setupUi() {
 	els.spamSelect.addEventListener('change', () => { state.spamMode = els.spamSelect.value; });
 	els.modeSelect.addEventListener('change', () => {
 		state.mode = els.modeSelect.value;
-		if (els.modeTitle) els.modeTitle.textContent = state.mode === 'countries' ? 'Tryb: Kraje' : 'Tryb: Imiona';
-		if (els.modeHint) els.modeHint.textContent = state.mode === 'countries' ? 'Napisz na czacie nazwę swojego kraju (po angielsku) albo wpisz poniżej i Enter.' : 'Napisz imię na czacie albo wpisz poniżej i Enter.';
+		if (els.modeTitle) els.modeTitle.textContent = state.mode === 'countries' ? 'Mode: Countries' : 'Tryb: Imiona';
+		if (els.modeHint) els.modeHint.textContent = state.mode === 'countries' ? 'Type your country in English in the chat, or enter below and press Enter.' : 'Napisz imię na czacie albo wpisz poniżej i Enter.';
 		renderStats();
 	});
 	if (els.hamburgerBtn) {
