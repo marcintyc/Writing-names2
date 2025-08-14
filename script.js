@@ -640,14 +640,21 @@ async function testApiKey() {
 	els.testKeyBtn.disabled = true;
 	setStatus('Testowanie klucza API…');
 	try {
-		const url = `https://www.googleapis.com/youtube/v3/i18nLanguages?part=snippet&hl=pl&key=${encodeURIComponent(key)}`;
+		// Use a public videos.list request (lighter and widely permitted)
+		const url = `https://www.googleapis.com/youtube/v3/videos?part=id&id=dQw4w9WgXcQ&key=${encodeURIComponent(key)}`;
 		const res = await fetch(url);
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-		const data = await res.json();
-		if (Array.isArray(data?.items)) {
-			setStatus('Klucz API wygląda OK.');
+		let body = null;
+		try { body = await res.json(); } catch {}
+		if (!res.ok) {
+			const reason = body?.error?.errors?.[0]?.reason || body?.error?.message || `HTTP ${res.status}`;
+			setStatus(`Błąd testu klucza: ${reason}. Sprawdź ograniczenia referrer i włącz YouTube Data API v3.`);
+			return;
+		}
+		const items = Array.isArray(body?.items) ? body.items : [];
+		if (items.length > 0) {
+			setStatus('Klucz API działa (videos.list OK).');
 		} else {
-			setStatus('Odpowiedź nieprawidłowa – sprawdź uprawnienia klucza.');
+			setStatus('Odpowiedź nieoczekiwana – sprawdź ustawienia klucza.');
 		}
 	} catch (e) {
 		console.error(e);
