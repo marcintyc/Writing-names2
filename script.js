@@ -9,6 +9,7 @@ const state = {
 	pollTimeoutId: null,
 	typingInProgress: false,
 	pendingNames: [],
+	currentPollMs: 3000,
 };
 
 const els = {
@@ -173,8 +174,15 @@ async function pollChatOnce() {
 	}
 
 	state.nextPageToken = data.nextPageToken;
-	const interval = Number(data.pollingIntervalMillis || 1500);
-	state.pollTimeoutId = setTimeout(() => pollChatLoop().catch(onPollError), interval);
+	const recommended = Number(data.pollingIntervalMillis || 1500);
+	const POLL_MIN_MS = 3000;
+	const POLL_MAX_MS = 10000;
+	let nextMs = Math.max(recommended, POLL_MIN_MS);
+	if (items.length === 0) {
+		nextMs = Math.min(POLL_MAX_MS, Math.floor((state.currentPollMs || nextMs) * 1.5));
+	}
+	state.currentPollMs = nextMs;
+	state.pollTimeoutId = setTimeout(() => pollChatLoop().catch(onPollError), state.currentPollMs);
 }
 
 async function pollChatLoop() {
@@ -200,6 +208,7 @@ async function connectYouTube() {
 
 	state.apiKey = apiKey;
 	state.videoId = videoId;
+	state.currentPollMs = 3000;
 	setStatus('Pobieranie liveChatId…');
 	try {
 		const chatId = await fetchLiveChatId(videoId, apiKey);
