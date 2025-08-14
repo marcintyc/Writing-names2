@@ -13,6 +13,8 @@ const state = {
 	lastUsefulMessageTs: Date.now(),
 	recentNames: new Map(),
 	authorLastAcceptedAt: new Map(), // New map for author cooldown
+	nameCounts: new Map(),
+	confettiEnabled: true,
 };
 
 const els = {
@@ -24,6 +26,7 @@ const els = {
 	list: null,
 	listContainer: null,
 	statusBox: null,
+	statsList: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -56,22 +59,48 @@ function getTypingDelayFor(text) {
 function appendName(name) {
 	const trimmed = String(name || '').trim();
 	if (!trimmed) return;
-	const key = trimmed.toLowerCase();
-	const now = Date.now();
-	const recentAt = state.recentNames.get(key) || 0;
-	if (now - recentAt < 10000) {
-		return; // ignore duplicates within 10s
-	}
-	state.recentNames.set(key, now);
-	// prune old dedupe entries (>5 min)
-	for (const [k, ts] of state.recentNames) {
-		if (now - ts > 5 * 60 * 1000) state.recentNames.delete(k);
-	}
-	state.lastUsefulMessageTs = now;
+	incrementNameCount(trimmed);
 	state.pendingNames.push(trimmed);
 	if (!state.typingInProgress) {
 		processTypingQueue();
 	}
+}
+
+function incrementNameCount(name) {
+	const current = state.nameCounts.get(name) || 0;
+	const next = current + 1;
+	state.nameCounts.set(name, next);
+	renderStats();
+	maybeConfetti(next, name);
+}
+
+function renderStats() {
+	if (!els.statsList) return;
+	const entries = Array.from(state.nameCounts.entries());
+	if (entries.length === 0) { els.statsList.innerHTML = ''; return; }
+	entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+	const top = entries.slice(0, 10);
+	const max = Math.max(...top.map(([, c]) => c));
+	const rows = top.map(([n, c]) => {
+		const width = Math.max(6, Math.round((c / max) * 100));
+		const safeName = n.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		return `
+			<li class="stat-row">
+				<div class="stat-name">${safeName}</div>
+				<div class="stat-count">${c}</div>
+				<div class="stat-bar"><span style="width:${width}%"></span></div>
+			</li>
+		`;
+	}).join('');
+	els.statsList.innerHTML = rows;
+}
+
+function maybeConfetti(count, name) {
+	if (!state.confettiEnabled || typeof window.confetti !== 'function') return;
+	const milestones = [3, 5, 10, 20, 50];
+	if (!milestones.includes(count)) return;
+	const originX = 0.3 + Math.random() * 0.4;
+	window.confetti({ particleCount: Math.min(250, 60 + count * 5), spread: 70, origin: { x: originX, y: 0.2 } });
 }
 
 async function processTypingQueue() {
@@ -345,6 +374,7 @@ function setupUi() {
 	els.list = qs('nameList');
 	els.listContainer = qs('listContainer');
 	els.statusBox = qs('statusBox');
+	els.statsList = qs('statsList');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
