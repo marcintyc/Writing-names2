@@ -21,10 +21,20 @@
 				<span>API Key (YouTube Data API v3)</span>
 				<input id="apiKeyInput" type="password" placeholder="Wklej klucz API" autocomplete="off" />
 			</label>
+			<label class="field">
+				<span>Tempo pisania</span>
+				<select id="speedSelect">
+					<option value="normal" selected>Normalne</option>
+					<option value="fast">Szybkie</option>
+					<option value="slow">Wolne</option>
+					<option value="instant">Natychmiast</option>
+				</select>
+			</label>
 			<button id="testKeyBtn" class="ghost">Testuj API Key</button>
 			<button id="testLiveBtn" class="ghost">Sprawdź LIVE</button>
 			<button id="connectBtn" class="primary">Połącz</button>
 			<button id="disconnectBtn" class="ghost" disabled>Rozłącz</button>
+			<button id="refreshBtn" class="ghost">Odśwież</button>
 		</div>
 	</header>
 

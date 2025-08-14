@@ -15,6 +15,7 @@ const state = {
 	authorLastAcceptedAt: new Map(), // New map for author cooldown
 	nameCounts: new Map(),
 	confettiEnabled: true,
+	speedMode: 'normal',
 };
 
 const els = {
@@ -29,6 +30,8 @@ const els = {
 	statsList: null,
 	testKeyBtn: null,
 	testLiveBtn: null,
+	speedSelect: null,
+	refreshBtn: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -53,10 +56,18 @@ const TYPING_DELAY_MED_MS = 90;  // medium length
 const TYPING_DELAY_LONG_MS = 110; // short texts (slower, more readable)
 
 function getTypingDelayFor(text) {
+	if (state.speedMode === 'instant') return 0;
 	const len = (text || '').length;
-	if (len > 20) return TYPING_DELAY_SHORT_MS;
-	if (len > 12) return TYPING_DELAY_MED_MS;
-	return TYPING_DELAY_LONG_MS;
+	let base;
+	if (len > 20) base = TYPING_DELAY_SHORT_MS;
+	else if (len > 12) base = TYPING_DELAY_MED_MS;
+	else base = TYPING_DELAY_LONG_MS;
+	switch (state.speedMode) {
+		case 'fast': base *= 0.5; break;
+		case 'slow': base *= 1.6; break;
+		default: break;
+	}
+	return base;
 }
 
 function appendName(name) {
@@ -131,13 +142,17 @@ async function processTypingQueue() {
 }
 
 async function typeOutText(textNode, caretEl, fullText) {
+	if (state.speedMode === 'instant') {
+		textNode.textContent = fullText;
+		if (caretEl && caretEl.parentNode) caretEl.parentNode.removeChild(caretEl);
+		requestAnimationFrame(scrollLastToCenter);
+		return;
+	}
 	const baseDelay = getTypingDelayFor(fullText);
 	const chars = Array.from(fullText);
 	for (let i = 0; i < chars.length; i++) {
 		textNode.textContent += chars[i];
-		// jitter: +-40% around base
 		let jitter = baseDelay * (0.6 + Math.random() * 0.8);
-		// small extra pause after spaces and punctuation
 		if (/\s|[.,!?;:]/.test(chars[i])) {
 			jitter += 80 + Math.random() * 140;
 		}
@@ -423,6 +438,27 @@ async function testLive() {
 	}
 }
 
+function clearUiAndState() {
+	state.pendingNames = [];
+	state.nameCounts = new Map();
+	state.recentNames = new Map();
+	state.authorLastAcceptedAt = new Map();
+	els.list.innerHTML = '';
+	renderStats();
+}
+
+async function handleRefresh() {
+	clearUiAndState();
+	if (state.connected) {
+		// reconnect keeps inputs
+		disconnectYouTube();
+		await new Promise(r => setTimeout(r, 300));
+		connectYouTube();
+	} else {
+		setStatus('Odświeżono. Wpisz dane i Połącz.');
+	}
+}
+
 function setupUi() {
 	els.connectBtn = qs('connectBtn');
 	els.disconnectBtn = qs('disconnectBtn');
@@ -435,6 +471,8 @@ function setupUi() {
 	els.statsList = qs('statsList');
 	els.testKeyBtn = qs('testKeyBtn');
 	els.testLiveBtn = qs('testLiveBtn');
+	els.speedSelect = qs('speedSelect');
+	els.refreshBtn = qs('refreshBtn');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -449,6 +487,10 @@ function setupUi() {
 	});
 	els.testKeyBtn.addEventListener('click', testApiKey);
 	els.testLiveBtn.addEventListener('click', testLive);
+	els.speedSelect.addEventListener('change', () => {
+		state.speedMode = els.speedSelect.value;
+	});
+	els.refreshBtn.addEventListener('click', handleRefresh);
 }
 
 window.addEventListener('DOMContentLoaded', setupUi);

@@ -53,6 +53,15 @@ html, body {
 	min-width: 220px;
 	outline: none;
 }
+.field select {
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid var(--border);
+	background: #0f1620;
+	color: var(--text);
+	min-width: 160px;
+	outline: none;
+}
 
 button {
 	border: 1px solid var(--border);
