@@ -739,6 +739,21 @@ async function handleSoftRefresh() {
 	setStatus('Odświeżono widok – pozostawiono 2 ostatnie wpisy.');
 }
 
+function applyModeTexts() {
+	if (!els.modeTitle || !els.modeHint || !els.statsTitle || !els.manualName) return;
+	if (state.mode === 'countries') {
+		els.modeTitle.textContent = 'Mode: Countries';
+		els.modeHint.textContent = 'Type your country in English in the chat, or enter below and press Enter.';
+		els.statsTitle.textContent = 'Countries Rank';
+		els.manualName.placeholder = 'Type your country and press Enter…';
+	} else {
+		els.modeTitle.textContent = 'Tryb: Imiona';
+		els.modeHint.textContent = 'Napisz imię na czacie albo wpisz poniżej i Enter.';
+		els.statsTitle.textContent = 'Top imiona';
+		els.manualName.placeholder = 'Wpisz i Enter…';
+	}
+}
+
 function setupUi() {
 	els.connectBtn = qs('connectBtn');
 	els.disconnectBtn = qs('disconnectBtn');
@@ -788,13 +803,13 @@ function setupUi() {
 	els.spamSelect.addEventListener('change', () => { state.spamMode = els.spamSelect.value; });
 	els.modeSelect.addEventListener('change', () => {
 		state.mode = els.modeSelect.value;
-		if (els.modeTitle) els.modeTitle.textContent = state.mode === 'countries' ? 'Mode: Countries' : 'Tryb: Imiona';
-		if (els.modeHint) els.modeHint.textContent = state.mode === 'countries' ? 'Type your country in English in the chat, or enter below and press Enter.' : 'Napisz imię na czacie albo wpisz poniżej i Enter.';
+		applyModeTexts();
 		renderStats();
 	});
 	if (els.hamburgerBtn) {
 		els.hamburgerBtn.addEventListener('click', () => {
 			document.body.classList.toggle('show-panels');
+			applyModeTexts();
 		});
 	}
 	if (els.fontSelect) {
@@ -813,6 +828,8 @@ function setupUi() {
 		applyFontClass(els.fontSelect.value || 'solway');
 		els.fontSelect.addEventListener('change', () => applyFontClass(els.fontSelect.value));
 	}
+	// ensure initial texts align with default mode
+	applyModeTexts();
 }
 
 window.addEventListener('DOMContentLoaded', setupUi);
