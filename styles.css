@@ -246,6 +246,14 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .last-sub { margin-top: 10px; font-size: 13px; color: var(--muted); }
 
+.stat-row.podium .stat-name { font-weight: 800; }
+.medal { display:inline-block; width: 18px; height: 18px; border-radius: 50%; margin-right: 8px; vertical-align: -2px; }
+.medal.gold { background: radial-gradient(circle at 30% 30%, #ffe27a, #f5b301); box-shadow: 0 0 0 2px rgba(245,179,1,0.25) inset; }
+.medal.silver { background: radial-gradient(circle at 30% 30%, #e6e6e6, #bdbdbd); box-shadow: 0 0 0 2px rgba(189,189,189,0.25) inset; }
+.medal.bronze { background: radial-gradient(circle at 30% 30%, #f0b189, #b87333); box-shadow: 0 0 0 2px rgba(184,115,51,0.25) inset; }
+.rank-num { display:inline-block; min-width: 20px; text-align:center; margin-right: 6px; color: var(--muted); font-weight: 700; }
+.stat-name > span { vertical-align: middle; }
+
 @media (max-width: 900px) {
 	.layout { grid-template-columns: 1fr; }
 	.controls { flex-wrap: wrap; }

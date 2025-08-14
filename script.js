@@ -110,22 +110,30 @@ function renderStats() {
 	if (!els.statsList) return;
 	let map = state.mode === 'countries' ? state.countryCounts : state.nameCounts;
 	const entries = Array.from(map.entries());
-	if (entries.length === 0) { els.statsList.innerHTML = ''; return; }
+	if (entries.length === 0) { els.statsList.innerHTML = ''; if (els.statsTitle) els.statsTitle.textContent = state.mode === 'countries' ? 'Top kraje' : 'Top imiona'; return; }
 	entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 	const top = entries.slice(0, 10);
 	const max = Math.max(...top.map(([, c]) => c));
-	const rows = top.map(([n, c]) => {
-		const width = Math.max(6, Math.round((c / max) * 100));
-		const safeName = n.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	const [first, second, third, ...rest] = top;
+	const makeRow = (name, count, opts = {}) => {
+		const width = Math.max(6, Math.round((count / max) * 100));
+		const safeName = name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		const medal = opts.medal ? `<span class="medal ${opts.medal}"></span>` : '';
+		const rankNum = typeof opts.rank === 'number' ? `<span class="rank-num">${opts.rank}</span>` : '';
 		return `
-			<li class="stat-row">
-				<div class="stat-name">${safeName}</div>
-				<div class="stat-count">${c}</div>
+			<li class="stat-row ${opts.podium ? 'podium' : ''}">
+				<div class="stat-name">${medal}${rankNum}<span>${safeName}</span></div>
+				<div class="stat-count">${count}</div>
 				<div class="stat-bar"><span style="width:${width}%"></span></div>
 			</li>
 		`;
-	}).join('');
-	els.statsList.innerHTML = rows;
+	};
+	let html = '';
+	if (first) html += makeRow(first[0], first[1], { podium: true, medal: 'gold' });
+	if (second) html += makeRow(second[0], second[1], { podium: true, medal: 'silver' });
+	if (third) html += makeRow(third[0], third[1], { podium: true, medal: 'bronze' });
+	rest.forEach((e, idx) => { html += makeRow(e[0], e[1], { rank: idx + 4 }); });
+	els.statsList.innerHTML = html;
 	if (els.statsTitle) {
 		els.statsTitle.textContent = state.mode === 'countries' ? 'Top kraje' : 'Top imiona';
 	}
