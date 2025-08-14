@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Ściana Imion – YouTube Live Chat</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+	<header class="topbar">
+		<div class="brand">Ściana Imion</div>
+		<div class="controls">
+			<label class="field">
+				<span>YouTube Live URL lub ID</span>
+				<input id="ytInput" type="text" placeholder="np. https://youtu.be/XXXX lub ID filmu" autocomplete="off" />
+			</label>
+			<label class="field">
+				<span>API Key (YouTube Data API v3)</span>
+				<input id="apiKeyInput" type="password" placeholder="Wklej klucz API" autocomplete="off" />
+			</label>
+			<button id="connectBtn" class="primary">Połącz</button>
+			<button id="disconnectBtn" class="ghost" disabled>Rozłącz</button>
+		</div>
+	</header>
+
+	<main class="layout">
+		<section class="panel left">
+			<h2>Tryb testowy</h2>
+			<p>Wpisz imię i naciśnij Enter – pojawi się na liście po prawej.</p>
+			<input id="manualName" class="manual" type="text" placeholder="Wpisz imię i Enter…" autocomplete="off" />
+			<div class="status" id="statusBox">Niepołączono z czatem.</div>
+			<div class="hints">
+				<p><strong>Wskazówka</strong>: Odczyt czatu z YouTube wymaga klucza API (YouTube Data API v3). Włącz w Google Cloud i ogranicz do swojego hosta (np. GitHub Pages).</p>
+				<p><strong>Filtry</strong>: Ignorujemy wiadomości zaczynające się od ! / ~ (komendy).</p>
+			</div>
+		</section>
+		<section class="panel right">
+			<div id="listContainer" class="list-container">
+				<ul id="nameList" class="name-list"></ul>
+			</div>
+		</section>
+	</main>
+
+	<footer class="footer">
+		<div>
+			Zaprojektowano do użycia jako nakładka/strona na <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer">GitHub Pages</a>.
+		</div>
+	</footer>
+
+	<script src="./script.js"></script>
+</body>
+</html>
