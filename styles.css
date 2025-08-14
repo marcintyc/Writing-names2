@@ -181,10 +181,28 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 	color: #ffffff;
 	text-shadow: 0 6px 18px rgba(0,0,0,0.35);
 	font-family: 'Solway', 'Caveat', 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+	position: relative;
 }
 
 .name-list li:nth-child(odd) { color: #dfe6ff; }
 .name-list li:nth-child(even) { color: #c7ffe8; }
+
+.name-delete {
+	position: absolute;
+	right: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: rgba(0,0,0,0.4);
+	border: 1px solid var(--border);
+	color: #fff;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 12px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 150ms ease;
+}
+.name-list li:hover .name-delete { opacity: 1; pointer-events: auto; }
 
 @keyframes blink-caret {
 	0%, 49% { opacity: 1; }

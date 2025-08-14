@@ -20,6 +20,7 @@ const state = {
 	spamMode: 'normal',
 	mode: 'names',
 	lastSubscriberName: '',
+	blacklist: new Set(),
 };
 
 const els = {
@@ -86,6 +87,7 @@ function getTypingDelayFor(text) {
 function appendEntry(text) {
 	const trimmed = String(text || '').trim();
 	if (!trimmed) return;
+	if (state.blacklist.has(trimmed.toLowerCase())) return;
 	state.pendingNames.push(trimmed);
 	if (!state.typingInProgress) {
 		processTypingQueue();
@@ -155,6 +157,7 @@ async function processTypingQueue() {
 	try {
 		while (state.pendingNames.length > 0) {
 			const nextText = state.pendingNames.shift();
+			if (state.blacklist.has(nextText.toLowerCase())) continue;
 			const li = document.createElement('li');
 			li.classList.add('typing');
 			const textNode = document.createTextNode('');
@@ -162,6 +165,13 @@ async function processTypingQueue() {
 			caret.className = 'typing-caret';
 			li.appendChild(textNode);
 			li.appendChild(caret);
+			// delete button
+			const del = document.createElement('button');
+			del.className = 'name-delete';
+			del.type = 'button';
+			del.textContent = '×';
+			del.addEventListener('click', () => handleDeleteEntry(li, nextText));
+			li.appendChild(del);
 			els.list.appendChild(li);
 
 			await typeOutText(textNode, caret, nextText);
@@ -652,7 +662,7 @@ async function handleRefresh() {
 
 function clearUiButKeepLastN(n) {
 	const items = Array.from(els.list.querySelectorAll('li'));
-	const keep = items.slice(-n).map(li => li.textContent || '').filter(Boolean);
+	const keep = items.slice(-n).map(li => (li.firstChild?.textContent || li.textContent || '').trim()).filter(Boolean);
 	els.list.innerHTML = '';
 	state.pendingNames = [];
 	state.recentNames = new Map();
@@ -660,12 +670,14 @@ function clearUiButKeepLastN(n) {
 	if (state.mode === 'countries') {
 		state.countryCounts = new Map();
 		for (const k of keep) {
+			if (state.blacklist.has(k.toLowerCase())) continue;
 			const c = extractValidCountry(k);
 			if (c) incrementCountryCount(c);
 		}
 	} else {
 		state.nameCounts = new Map();
 		for (const k of keep) {
+			if (state.blacklist.has(k.toLowerCase())) continue;
 			const name = extractValidName(k);
 			if (name) incrementNameCount(name);
 		}
