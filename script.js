@@ -34,6 +34,7 @@ const els = {
 	speedSelect: null,
 	refreshBtn: null,
 	spamSelect: null,
+	eventToasts: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -307,6 +308,39 @@ async function pollChatOnceInternal(pageToken) {
 	return data;
 }
 
+function showToast(headline, subline, accent = 'var(--accent)') {
+	const box = els.eventToasts;
+	if (!box) return;
+	const t = document.createElement('div');
+	t.className = 'toast';
+	t.innerHTML = `<div class="headline" style="color:${accent}">${headline}</div>${subline ? `<div class="subline">${subline}</div>` : ''}`;
+	box.appendChild(t);
+	setTimeout(() => {
+		if (typeof window.confetti === 'function') {
+			window.confetti({ particleCount: 180, spread: 70, origin: { x: 0.5, y: 0.3 } });
+		}
+	}, 50);
+	setTimeout(() => { t.remove(); }, 6000);
+}
+
+function handleLiveChatItem(it) {
+	const msg = it?.snippet?.displayMessage || '';
+	const authorName = it?.authorDetails?.displayName || 'Ktoś';
+	const isSponsor = !!it?.authorDetails?.isChatSponsor;
+	const type = it?.snippet?.type || it?.snippet?.messageType || '';
+	// YouTube Data API ma typy jak: superChatEvent, newSponsorEvent, messageDeletedEvent, etc.
+	if (type && /sponsor|member/i.test(type)) {
+		showToast(`${authorName} dołączył jako członek!`, 'Dziękujemy za wsparcie!', '#19c37d');
+		return 'event';
+	}
+	if (isSponsor) {
+		showToast(`${authorName} just subscribed!`, 'Witamy w ekipie!', '#19c37d');
+		return 'event';
+	}
+	// W przyszłości można też obsłużyć superchats: snippet.superChatDetails
+	return 'message';
+}
+
 async function pollChatOnce() {
 	if (!state.liveChatId || !state.apiKey) return;
 	let data = await pollChatOnceInternal(state.nextPageToken);
@@ -314,6 +348,8 @@ async function pollChatOnce() {
 	while (true) {
 		const items = Array.isArray(data.items) ? data.items : [];
 		for (const it of items) {
+			const eventResult = handleLiveChatItem(it);
+			if (eventResult === 'event') continue;
 			const msg = it?.snippet?.displayMessage || '';
 			if (!msg) continue;
 			if (isLikelyCommand(msg)) continue;
@@ -327,7 +363,6 @@ async function pollChatOnce() {
 			appended++;
 		}
 		state.nextPageToken = data.nextPageToken;
-		// Catch-up: jeśli API zwróciło dużo wiadomości i ma nextPageToken, od razu pobierz kolejną stronę
 		if (data.nextPageToken && items.length >= 150) {
 			data = await pollChatOnceInternal(data.nextPageToken);
 			continue;
@@ -490,6 +525,7 @@ function setupUi() {
 	els.speedSelect = qs('speedSelect');
 	els.refreshBtn = qs('refreshBtn');
 	els.spamSelect = qs('spamSelect');
+	els.eventToasts = qs('eventToasts');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);

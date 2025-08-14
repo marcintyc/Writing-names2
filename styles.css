@@ -206,6 +206,44 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 /* Optional style while typing */
 .name-list li.typing { filter: drop-shadow(0 6px 18px rgba(0,0,0,0.35)); }
 
+.event-toasts {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	pointer-events: none;
+	display: grid;
+	place-items: center;
+	padding: 24px;
+}
+.toast {
+	background: rgba(16,24,33,0.85);
+	border: 1px solid var(--border);
+	box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+	border-radius: 18px;
+	padding: 18px 24px;
+	color: var(--text);
+	text-align: center;
+	max-width: min(720px, 90%);
+	animation: toast-pop 600ms ease;
+}
+.toast .headline {
+	font-family: 'Caveat','Poppins',sans-serif;
+	font-size: clamp(36px, 8vw, 96px);
+	font-weight: 700;
+	line-height: 1.05;
+}
+.toast .subline {
+	margin-top: 6px;
+	font-size: clamp(14px, 2.2vw, 22px);
+	color: var(--muted);
+}
+@keyframes toast-pop {
+	0% { transform: translateY(12px) scale(0.98); opacity: 0; }
+	100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 @media (max-width: 900px) {
 	.layout { grid-template-columns: 1fr; }
 	.controls { flex-wrap: wrap; }
