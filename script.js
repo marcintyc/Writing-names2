@@ -43,6 +43,7 @@ const els = {
 	modeHint: null,
 	statsTitle: null,
 	lastSub: null,
+	softRefreshBtn: null,
 };
 
 function qs(id) { return document.getElementById(id); }
@@ -228,15 +229,17 @@ function isNoiseMessage(message) {
 	const s = String(message || '').toLowerCase();
 	if (!s) return true;
 	if (s.includes('http://') || s.includes('https://') || s.includes('www.')) return true;
-	// Requests to write/say the name
 	const noisePhrases = [
 		'write my name','can you write my name','say my name','name please','name pls','please write my name',
-		'napisz moje imie','napisz moje imię','czy mozesz napisac','czy możesz napisać','napisz moje nazwisko'
+		'napisz moje imie','napisz moje imię','czy mozesz napisac','czy możesz napisać','napisz moje nazwisko',
+		'hello','hi','hey','hej','siema','cześć','czesc','hola','bonjour','hallo','yo','sup','what\'s up','whats up',
+		'thank you','thanks','dzieki','dzięki','danke','gracias','merci',
+		'what is this','co to jest','wtf','lol','xd','lmao','rofl',
+		'good night','good morning','good evening','dobranoc','dzien dobry','dzień dobry',
+		'i love you','kocham cie','kocham cię','love from','pozdrawiam','shoutout','subscribe','subskrybuj','like','follow'
 	];
 	if (noisePhrases.some(p => s.includes(p))) return true;
-	// Greetings-only
 	if (/^(hi|hello|siema|cześć|czesc|hej|yo|sup|hola)[.!?\s]*$/.test(s)) return true;
-	// DIDDY meme
 	if (isDiddySpam(s)) return true;
 	return false;
 }
@@ -646,6 +649,34 @@ async function handleRefresh() {
 	}
 }
 
+function clearUiButKeepLastN(n) {
+	const items = Array.from(els.list.querySelectorAll('li'));
+	const keep = items.slice(-n).map(li => li.textContent || '').filter(Boolean);
+	els.list.innerHTML = '';
+	state.pendingNames = [];
+	state.recentNames = new Map();
+	state.authorLastAcceptedAt = new Map();
+	if (state.mode === 'countries') {
+		state.countryCounts = new Map();
+		for (const k of keep) {
+			const c = extractValidCountry(k);
+			if (c) incrementCountryCount(c);
+		}
+	} else {
+		state.nameCounts = new Map();
+		for (const k of keep) {
+			const name = extractValidName(k);
+			if (name) incrementNameCount(name);
+		}
+	}
+	for (const k of keep) appendEntry(k);
+}
+
+async function handleSoftRefresh() {
+	clearUiButKeepLastN(2);
+	setStatus('Odświeżono widok – pozostawiono 2 ostatnie wpisy.');
+}
+
 function setupUi() {
 	els.connectBtn = qs('connectBtn');
 	els.disconnectBtn = qs('disconnectBtn');
@@ -667,6 +698,7 @@ function setupUi() {
 	els.modeHint = qs('modeHint');
 	els.statsTitle = qs('statsTitle');
 	els.lastSub = qs('lastSub');
+	els.softRefreshBtn = qs('softRefreshBtn');
 
 	els.connectBtn.addEventListener('click', connectYouTube);
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
@@ -688,6 +720,7 @@ function setupUi() {
 	els.testLiveBtn.addEventListener('click', testLive);
 	els.speedSelect.addEventListener('change', () => { state.speedMode = els.speedSelect.value; });
 	els.refreshBtn.addEventListener('click', handleRefresh);
+	if (els.softRefreshBtn) els.softRefreshBtn.addEventListener('click', handleSoftRefresh);
 	els.spamSelect.addEventListener('change', () => { state.spamMode = els.spamSelect.value; });
 	els.modeSelect.addEventListener('change', () => {
 		state.mode = els.modeSelect.value;
