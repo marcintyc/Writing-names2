@@ -20,7 +20,6 @@ const state = {
 	spamMode: 'normal',
 	mode: 'names',
 	lastSubscriberName: '',
-	blacklist: new Set(),
 };
 
 const els = {
@@ -88,7 +87,7 @@ function getTypingDelayFor(text) {
 function appendEntry(text) {
 	const trimmed = String(text || '').trim();
 	if (!trimmed) return;
-	if (state.blacklist.has(trimmed.toLowerCase())) return;
+	// blacklist removed: allow re-adding
 	state.pendingNames.push(trimmed);
 	if (!state.typingInProgress) {
 		processTypingQueue();
@@ -153,14 +152,12 @@ function maybeConfetti(count, name) {
 }
 
 function rebuildCountsFromList() {
-	// Recompute counts from visible list items (excluding blacklisted)
 	state.nameCounts = new Map();
 	state.countryCounts = new Map();
 	const items = Array.from(els.list.querySelectorAll('li'));
 	for (const li of items) {
 		const raw = (li.firstChild?.textContent || li.textContent || '').trim();
 		if (!raw) continue;
-		if (state.blacklist.has(raw.toLowerCase())) continue;
 		if (state.mode === 'countries') {
 			const c = extractValidCountry(raw);
 			if (c) {
@@ -191,25 +188,12 @@ function removeAllListEntries(text) {
 }
 
 function handleDeleteEntry(li, text) {
-	if (!text) return;
-	const lower = String(text).toLowerCase();
-	state.blacklist.add(lower);
-	if (li && li.remove) li.remove();
-	removeAllListEntries(text);
-	// Remove from pending queue to prevent pending duplicates
-	state.pendingNames = state.pendingNames.filter(t => String(t).toLowerCase() !== lower);
-	rebuildCountsFromList();
+	// Legacy: redirect to single remove
+	singleRemoveEntry(li, text);
 }
 
 function safeDelete(li, text) {
-	try { handleDeleteEntry(li, text); } catch (e) {
-		const lower = String(text).toLowerCase();
-		state.blacklist.add(lower);
-		if (li && li.remove) li.remove();
-		removeAllListEntries(text);
-		state.pendingNames = state.pendingNames.filter(t => String(t).toLowerCase() !== lower);
-		rebuildCountsFromList();
-	}
+	singleRemoveEntry(li, text);
 }
 
 async function processTypingQueue() {
@@ -218,7 +202,6 @@ async function processTypingQueue() {
 	try {
 		while (state.pendingNames.length > 0) {
 			const nextText = state.pendingNames.shift();
-			if (state.blacklist.has(nextText.toLowerCase())) continue;
 			const li = document.createElement('li');
 			li.classList.add('typing');
 			const textNode = document.createTextNode('');
@@ -226,12 +209,12 @@ async function processTypingQueue() {
 			caret.className = 'typing-caret';
 			li.appendChild(textNode);
 			li.appendChild(caret);
-			// delete button
+			// delete button (single remove)
 			const del = document.createElement('button');
 			del.className = 'name-delete';
 			del.type = 'button';
 			del.textContent = '×';
-			del.addEventListener('click', () => safeDelete(li, nextText));
+			del.addEventListener('click', () => singleRemoveEntry(li, nextText));
 			li.appendChild(del);
 			els.list.appendChild(li);
 
@@ -242,6 +225,12 @@ async function processTypingQueue() {
 	} finally {
 		state.typingInProgress = false;
 	}
+}
+
+function singleRemoveEntry(li, text) {
+	if (li && li.remove) li.remove();
+	// Recompute counts from remaining list
+	rebuildCountsFromList();
 }
 
 async function typeOutText(textNode, caretEl, fullText) {
@@ -363,27 +352,26 @@ function containsProfanity(text) {
 const COUNTRY_NAMES = new Set([
 	'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan',
 	'Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi',
-	'Cambodia','Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica','Cote d\'Ivoire','Croatia','Cuba','Cyprus','Czech Republic','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic',
-	'Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia',
+	'Cambodia','Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros','Costa Rica','Croatia','Cuba','Cyprus','Czech Republic','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic',
+	'East Timor (Timor-Leste)','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia',
 	'Fiji','Finland','France',
 	'Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana',
 	'Haiti','Honduras','Hungary',
 	'Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy',
-	'Jamaica','Japan','Jordan',
+	'Ivory Coast (Côte d\'Ivoire)','Jamaica','Japan','Jordan',
 	'Kazakhstan','Kenya','Kiribati','Kosovo','Kuwait','Kyrgyzstan',
 	'Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg',
 	'Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar',
 	'Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway',
 	'Oman',
-	'Pakistan','Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal',
+	'Pakistan','Palau','Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal',
 	'Qatar',
-	'Romania','Russia','Rwanda',
-	'Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria',
-	'Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu',
+	'Republic of the Congo','Romania','Russia','Rwanda',
+	'Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','São Tomé and Príncipe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria',
+	'Taiwan','Tajikistan','Tanzania','Thailand','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu',
 	'Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan',
 	'Vanuatu','Vatican City','Venezuela','Vietnam',
-	'Yemen',
-	'Zambia','Zimbabwe'
+	'Yemen','Zambia','Zimbabwe'
 ]);
 
 const COUNTRY_ALIASES = new Map([
@@ -391,12 +379,14 @@ const COUNTRY_ALIASES = new Map([
 	['UK','United Kingdom'],['U.K.','United Kingdom'],['Great Britain','United Kingdom'],['Britain','United Kingdom'],
 	['UAE','United Arab Emirates'],['Emirates','United Arab Emirates'],
 	['DRC','Democratic Republic of the Congo'],['Congo-Kinshasa','Democratic Republic of the Congo'],
-	['Congo-Brazzaville','Congo'],
+	['Republic of Congo','Republic of the Congo'],['Congo-Brazzaville','Republic of the Congo'],
 	['South Korea','South Korea'],['Korea','South Korea'],
 	['North Korea','North Korea'],
-	['Ivory Coast','Cote d\'Ivoire'],
+	['Ivory Coast','Ivory Coast (Côte d\'Ivoire)'],['Cote d\'Ivoire','Ivory Coast (Côte d\'Ivoire)'],['Côte d\'Ivoire','Ivory Coast (Côte d\'Ivoire)'],
 	['Czechia','Czech Republic'],
-	['Russia','Russia'],['Vatican','Vatican City']
+	['Timor-Leste','East Timor (Timor-Leste)'],['East Timor','East Timor (Timor-Leste)'],
+	['Sao Tome and Principe','São Tomé and Príncipe'],['Sao Tome','São Tomé and Príncipe'],
+	['Vatican','Vatican City']
 ]);
 
 function extractValidCountry(message) {
@@ -731,14 +721,12 @@ function clearUiButKeepLastN(n) {
 	if (state.mode === 'countries') {
 		state.countryCounts = new Map();
 		for (const k of keep) {
-			if (state.blacklist.has(k.toLowerCase())) continue;
 			const c = extractValidCountry(k);
 			if (c) incrementCountryCount(c);
 		}
 	} else {
 		state.nameCounts = new Map();
 		for (const k of keep) {
-			if (state.blacklist.has(k.toLowerCase())) continue;
 			const name = extractValidName(k);
 			if (name) incrementNameCount(name);
 		}

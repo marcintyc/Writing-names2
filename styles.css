@@ -270,6 +270,10 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .medal.bronze { background: radial-gradient(circle at 30% 30%, #f0b189, #b87333); box-shadow: 0 0 0 2px rgba(184,115,51,0.25) inset; }
 .rank-num { display:inline-block; min-width: 20px; text-align:center; margin-right: 6px; color: var(--muted); font-weight: 700; }
 .stat-name > span { vertical-align: middle; }
+.stat-row.podium:first-child .stat-name span { font-size: 1.15em; }
+.stat-row.podium .stat-bar > span { background: linear-gradient(90deg, #ffd84d, #ffb300); }
+.stat-row.podium:nth-child(2) .stat-bar > span { background: linear-gradient(90deg, #e0e0e0, #bdbdbd); }
+.stat-row.podium:nth-child(3) .stat-bar > span { background: linear-gradient(90deg, #f0b189, #b87333); }
 
 .hamburger { display: none; margin-right: 8px; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
 
@@ -294,6 +298,8 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 	body.show-panels .panel.left, body.show-panels .panel.stats { display: block; }
 	.field input { min-width: 160px; }
 	.list-container { height: calc(100vh - 260px); }
+	/* In countries mode, keep stats visible when panels are shown */
+	body.show-panels .panel.stats { display: block; }
 }
 
 @media (max-width: 1200px) {
