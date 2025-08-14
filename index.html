@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Ściana Imion – Live Chat</title>
+	<title>Ściana Imion – YouTube Live Chat</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
@@ -14,8 +14,12 @@
 		<div class="brand">Ściana Imion</div>
 		<div class="controls">
 			<label class="field">
-				<span>Kanał Twitch</span>
-				<input id="channelInput" type="text" placeholder="np. xqc, wardega" autocomplete="off" />
+				<span>YouTube Live URL lub ID</span>
+				<input id="ytInput" type="text" placeholder="np. https://youtu.be/XXXX lub ID filmu" autocomplete="off" />
+			</label>
+			<label class="field">
+				<span>API Key (YouTube Data API v3)</span>
+				<input id="apiKeyInput" type="password" placeholder="Wklej klucz API" autocomplete="off" />
 			</label>
 			<button id="connectBtn" class="primary">Połącz</button>
 			<button id="disconnectBtn" class="ghost" disabled>Rozłącz</button>
@@ -29,8 +33,8 @@
 			<input id="manualName" class="manual" type="text" placeholder="Wpisz imię i Enter…" autocomplete="off" />
 			<div class="status" id="statusBox">Niepołączono z czatem.</div>
 			<div class="hints">
-				<p><strong>Wskazówka</strong>: Na Twitchu możesz połączyć się anonimowo – tylko odczyt czatu.</p>
-				<p><strong>Filtry</strong>: Ignorujemy wiadomości zaczynające się od ! (komendy botów).</p>
+				<p><strong>Wskazówka</strong>: Odczyt czatu z YouTube wymaga klucza API (YouTube Data API v3). Włącz w Google Cloud i ogranicz do swojego hosta (np. GitHub Pages).</p>
+				<p><strong>Filtry</strong>: Ignorujemy wiadomości zaczynające się od ! / ~ (komendy).</p>
 			</div>
 		</section>
 		<section class="panel right">
@@ -46,7 +50,6 @@
 		</div>
 	</footer>
 
-	<script src="https://unpkg.com/tmi.js@1.8.5/dist/tmi.min.js" integrity="sha384-jlYl5pQeTlfz7QkfT5Yf8yJjg8RNAm0x7g9yWJ9+8Wm8EJt5Q46f1D5l2nM/7S4P" crossorigin="anonymous"></script>
 	<script src="./script.js"></script>
 </body>
 </html>

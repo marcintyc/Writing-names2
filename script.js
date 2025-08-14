@@ -1,17 +1,19 @@
 'use strict';
 
 const state = {
-	client: null,
 	connected: false,
-	channelName: '',
-	messageQueue: [],
-	autoScrollLock: false,
+	apiKey: '',
+	videoId: '',
+	liveChatId: '',
+	nextPageToken: undefined,
+	pollTimeoutId: null,
 };
 
 const els = {
 	connectBtn: null,
 	disconnectBtn: null,
-	channelInput: null,
+	ytInput: null,
+	apiKeyInput: null,
 	manualName: null,
 	list: null,
 	listContainer: null,
@@ -20,7 +22,7 @@ const els = {
 
 function qs(id) { return document.getElementById(id); }
 
-function setStatus(text, type = 'info') {
+function setStatus(text) {
 	if (!els.statusBox) return;
 	els.statusBox.textContent = text;
 }
@@ -29,7 +31,8 @@ function toggleUiConnected(connected) {
 	state.connected = connected;
 	els.connectBtn.disabled = connected;
 	els.disconnectBtn.disabled = !connected;
-	els.channelInput.disabled = connected;
+	els.ytInput.disabled = connected;
+	els.apiKeyInput.disabled = connected;
 }
 
 function appendName(name) {
@@ -55,62 +58,111 @@ function isLikelyCommand(message) {
 	return message.startsWith('!') || message.startsWith('/') || message.startsWith('~');
 }
 
-function setupTwitch() {
-	if (state.client) {
-		try { state.client.disconnect(); } catch {}
-		state.client = null;
-	}
-	const channel = els.channelInput.value.trim();
-	if (!channel) {
-		setStatus('Podaj nazwę kanału i spróbuj ponownie.');
-		return;
-	}
-	state.channelName = channel;
-	setStatus('Łączenie z czatem Twitch…');
-
-	// Anonymous read-only connection
-	const client = new tmi.Client({
-		connection: { reconnect: true, secure: true },
-		identity: { username: 'justinfan' + Math.floor(Math.random() * 100000), password: 'oauth:anonymous' },
-		channels: [channel]
-	});
-
-	client.on('connected', () => {
-		setStatus(`Połączono z #${channel}`);
-		toggleUiConnected(true);
-	});
-
-	client.on('disconnected', (reason) => {
-		setStatus(`Rozłączono: ${reason || 'nieznany powód'}`);
-		toggleUiConnected(false);
-	});
-
-	client.on('message', (target, tags, message, self) => {
-		if (self) return;
-		if (isLikelyCommand(message)) return; // ignore bot commands
-		appendName(message);
-	});
-
-	client.on('notice', (channel, msgid, message) => {
-		if (message) setStatus(message);
-	});
-
-	client.on('reconnect', () => setStatus('Ponowne łączenie…'));
-	client.on('join', () => setStatus(`Dołączono do #${channel}`));
-	client.on('part', () => setStatus(`Opuściliśmy #${channel}`));
-
-	client.connect().catch((err) => {
-		console.error(err);
-		setStatus('Błąd połączenia. Sprawdź nazwę kanału lub odśwież stronę.');
-	});
-
-	state.client = client;
+function extractVideoId(input) {
+	const raw = (input || '').trim();
+	if (!raw) return '';
+	// If pure 11-char id
+	if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return raw;
+	try {
+		const url = new URL(raw);
+		if (url.hostname.includes('youtube.com')) {
+			const v = url.searchParams.get('v');
+			if (v) return v;
+			// youtube.com/live/<id>
+			const parts = url.pathname.split('/').filter(Boolean);
+			const liveIdx = parts.indexOf('live');
+			if (liveIdx !== -1 && parts[liveIdx + 1]) return parts[liveIdx + 1];
+		}
+		if (url.hostname === 'youtu.be') {
+			const id = url.pathname.replace(/^\//, '');
+			if (id) return id;
+		}
+	} catch {}
+	return raw;
 }
 
-function disconnectTwitch() {
-	if (state.client) {
-		try { state.client.disconnect(); } catch {}
-		state.client = null;
+async function fetchLiveChatId(videoId, apiKey) {
+	const endpoint = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${encodeURIComponent(videoId)}&key=${encodeURIComponent(apiKey)}`;
+	const res = await fetch(endpoint);
+	if (!res.ok) throw new Error(`videos.list HTTP ${res.status}`);
+	const data = await res.json();
+	const item = data.items && data.items[0];
+	const live = item && item.liveStreamingDetails;
+	const chatId = live && (live.activeLiveChatId || live.concurrentViewers && live.activeLiveChatId);
+	if (!chatId) throw new Error('Brak aktywnego live chat dla tego wideo.');
+	return chatId;
+}
+
+async function pollChatOnce() {
+	if (!state.liveChatId || !state.apiKey) return;
+	const base = 'https://www.googleapis.com/youtube/v3/liveChat/messages';
+	const params = new URLSearchParams({
+		liveChatId: state.liveChatId,
+		part: 'snippet,authorDetails',
+		key: state.apiKey,
+	});
+	if (state.nextPageToken) params.set('pageToken', state.nextPageToken);
+	const url = `${base}?${params.toString()}`;
+	const res = await fetch(url);
+	if (!res.ok) throw new Error(`liveChat.messages HTTP ${res.status}`);
+	const data = await res.json();
+
+	const items = Array.isArray(data.items) ? data.items : [];
+	for (const it of items) {
+		const msg = it?.snippet?.displayMessage || '';
+		if (!msg) continue;
+		if (isLikelyCommand(msg)) continue;
+		appendName(msg);
+	}
+
+	state.nextPageToken = data.nextPageToken;
+	const interval = Number(data.pollingIntervalMillis || 1500);
+	state.pollTimeoutId = setTimeout(() => pollChatLoop().catch(onPollError), interval);
+}
+
+async function pollChatLoop() {
+	if (!state.connected) return;
+	await pollChatOnce();
+}
+
+function onPollError(err) {
+	console.error(err);
+	setStatus('Błąd odczytu czatu. Sprawdz klucz API i ID filmu.');
+	// spróbuj ponownie po chwili
+	state.pollTimeoutId = setTimeout(() => pollChatLoop().catch(onPollError), 3000);
+}
+
+async function connectYouTube() {
+	if (state.connected) disconnectYouTube();
+	const apiKey = els.apiKeyInput.value.trim();
+	const videoInput = els.ytInput.value.trim();
+	if (!apiKey) return setStatus('Podaj klucz API YouTube.');
+	if (!videoInput) return setStatus('Podaj URL lub ID filmu.');
+	const videoId = extractVideoId(videoInput);
+	if (!videoId) return setStatus('Nie udało się rozpoznać ID filmu.');
+
+	state.apiKey = apiKey;
+	state.videoId = videoId;
+	setStatus('Pobieranie liveChatId…');
+	try {
+		const chatId = await fetchLiveChatId(videoId, apiKey);
+		state.liveChatId = chatId;
+		setStatus(`Połączono z live chat: ${videoId}`);
+		toggleUiConnected(true);
+		state.connected = true;
+		state.nextPageToken = undefined;
+		pollChatLoop().catch(onPollError);
+	} catch (err) {
+		console.error(err);
+		setStatus('Nie udało się uzyskać liveChatId. Czy stream jest na żywo i klucz API poprawny?');
+	}
+}
+
+function disconnectYouTube() {
+	state.connected = false;
+	if (state.pollTimeoutId) {
+		clearTimeout(state.pollTimeoutId);
+		state.pollTimeoutId = null;
 	}
 	toggleUiConnected(false);
 	setStatus('Niepołączono z czatem.');
@@ -119,17 +171,17 @@ function disconnectTwitch() {
 function setupUi() {
 	els.connectBtn = qs('connectBtn');
 	els.disconnectBtn = qs('disconnectBtn');
-	els.channelInput = qs('channelInput');
+	els.ytInput = qs('ytInput');
+	els.apiKeyInput = qs('apiKeyInput');
 	els.manualName = qs('manualName');
 	els.list = qs('nameList');
 	els.listContainer = qs('listContainer');
 	els.statusBox = qs('statusBox');
 
-	els.connectBtn.addEventListener('click', setupTwitch);
-	els.disconnectBtn.addEventListener('click', disconnectTwitch);
-	els.channelInput.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter') setupTwitch();
-	});
+	els.connectBtn.addEventListener('click', connectYouTube);
+	els.disconnectBtn.addEventListener('click', disconnectYouTube);
+	els.ytInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connectYouTube(); });
+	els.apiKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connectYouTube(); });
 	els.manualName.addEventListener('keydown', (e) => {
 		if (e.key === 'Enter') {
 			appendName(els.manualName.value);
