@@ -2,9 +2,9 @@
 # Rozszerzona Baza Imion Świata - 25,000+ imion
 
 ## 📊 Statystyki:
-- **Wszystkie imiona**: 10326
-- **Unikalne imiona**: 10326
-- **Data pobrania**: 15.08.2025, 16:14:24
+- **Wszystkie imiona**: 10171
+- **Unikalne imiona**: 10171
+- **Data pobrania**: 15.08.2025, 16:35:38
 
 ## 📁 Pliki:
 - **names-list-25k.txt** - prosta lista imion

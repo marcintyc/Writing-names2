@@ -1,36 +1,36 @@
 {
-  "totalNames": 10326,
-  "uniqueNames": 10326,
+  "totalNames": 10171,
+  "uniqueNames": 10171,
   "genderBreakdown": {
-    "unknown": 10182,
+    "unknown": 10027,
     "M": 76,
     "F": 68
   },
   "nationalityBreakdown": {
-    "unknown": 10182,
-    "EN": 10,
-    "IN": 25,
-    "RU": 5,
-    "FR": 5,
-    "CN": 12,
-    "IT": 5,
-    "PL": 10,
-    "ZA": 6,
+    "unknown": 10027,
     "SA": 24,
+    "FR": 5,
+    "ZA": 6,
+    "EN": 10,
+    "CN": 12,
+    "PL": 10,
+    "RU": 5,
     "ES": 5,
+    "IT": 5,
     "DE": 6,
+    "IN": 25,
+    "JP": 14,
+    "UG": 1,
     "GH": 4,
     "NG": 4,
     "TZ": 3,
     "KE": 3,
-    "UG": 1,
     "CD": 1,
-    "BW": 1,
-    "JP": 14
+    "BW": 1
   },
   "sourceBreakdown": {
-    "API Error": 10182,
+    "API Error": 10027,
     "Database": 144
   },
-  "timestamp": "2025-08-15T16:14:24.019Z"
+  "timestamp": "2025-08-15T16:35:38.307Z"
 }
