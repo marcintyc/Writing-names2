@@ -1,174 +1,174 @@
-// Extended Names Scraper - Pobieranie 25,000+ imion z całego świata
+// Extended Names Scraper - Pobieranie 50,000+ imion z całego świata
 // Legalne i darmowe API
 
 const fs = require('fs');
 const axios = require('axios');
 
-// Konfiguracja - 25,000 imion!
+// Konfiguracja - 50,000 imion!
 const CONFIG = {
-    totalNames: 25000,        // 25,000 imion!
-    batchSize: 1000,          // Większe partie
-    delayBetweenBatches: 1500, // Szybsze opóźnienia
-    delayBetweenRequests: 20   // Szybsze requesty
+	totalNames: 50000,        // 50,000 imion!
+	batchSize: 1000,          // Większe partie
+	delayBetweenBatches: 1000, // Szybsze opóźnienia
+	delayBetweenRequests: 15   // Szybsze requesty
 };
 
 // Rozszerzona baza popularnych imion z różnych kultur (1000+)
 const POPULAR_NAMES_DB = {
-    // Indyjskie imiona (200+)
-    'Dileep': { region: 'IN', gender: 'M', meaning: 'Protector of the poor' },
-    'Arwen': { region: 'IN', gender: 'F', meaning: 'Noble maiden' },
-    'Krishna': { region: 'IN', gender: 'M', meaning: 'Dark, attractive' },
-    'Priya': { region: 'IN', gender: 'F', meaning: 'Beloved, dear' },
-    'Arjun': { region: 'IN', gender: 'M', meaning: 'Bright, white, clear' },
-    'Anjali': { region: 'IN', gender: 'F', meaning: 'Offering, gift' },
-    'Vikram': { region: 'IN', gender: 'M', meaning: 'Valour, bravery' },
-    'Meera': { region: 'IN', gender: 'F', meaning: 'Prosperous, ocean' },
-    'Amit': { region: 'IN', gender: 'M', meaning: 'Infinite' },
-    'Kavya': { region: 'IN', gender: 'F', meaning: 'Poetry' },
-    'Raj': { region: 'IN', gender: 'M', meaning: 'King' },
-    'Divya': { region: 'IN', gender: 'F', meaning: 'Divine' },
-    'Suresh': { region: 'IN', gender: 'M', meaning: 'Lord of gods' },
-    'Pooja': { region: 'IN', gender: 'F', meaning: 'Worship' },
-    'Mohan': { region: 'IN', gender: 'M', meaning: 'Charming' },
-    'Neha': { region: 'IN', gender: 'F', meaning: 'Love' },
-    'Rahul': { region: 'IN', gender: 'M', meaning: 'Able, efficient' },
-    'Priyanka': { region: 'IN', gender: 'F', meaning: 'Beautiful' },
-    'Vishal': { region: 'IN', gender: 'M', meaning: 'Huge, vast' },
-    'Ananya': { region: 'IN', gender: 'F', meaning: 'Unique' },
-    'Aditya': { region: 'IN', gender: 'M', meaning: 'Sun god' },
-    'Ishita': { region: 'IN', gender: 'F', meaning: 'Desired' },
-    'Karan': { region: 'IN', gender: 'M', meaning: 'Clever' },
-    'Riya': { region: 'IN', gender: 'F', meaning: 'Singer' },
-    'Dhruv': { region: 'IN', gender: 'M', meaning: 'Pole star' },
-    'Zara': { region: 'IN', gender: 'F', meaning: 'Princess' },
-    
-    // Arabskie imiona (200+)
-    'Ahmed': { region: 'SA', gender: 'M', meaning: 'Most commendable' },
-    'Fatima': { region: 'SA', gender: 'F', meaning: 'One who abstains' },
-    'Mohammed': { region: 'SA', gender: 'M', meaning: 'Praiseworthy' },
-    'Aisha': { region: 'SA', gender: 'F', meaning: 'Alive, living' },
-    'Ali': { region: 'SA', gender: 'M', meaning: 'High, elevated' },
-    'Zara': { region: 'SA', gender: 'F', meaning: 'Princess, flower' },
-    'Hassan': { region: 'SA', gender: 'M', meaning: 'Handsome' },
-    'Layla': { region: 'SA', gender: 'F', meaning: 'Night' },
-    'Omar': { region: 'SA', gender: 'M', meaning: 'Long-lived' },
-    'Noor': { region: 'SA', gender: 'F', meaning: 'Light' },
-    'Yusuf': { region: 'SA', gender: 'M', meaning: 'God will increase' },
-    'Amira': { region: 'SA', gender: 'F', meaning: 'Princess' },
-    'Khalid': { region: 'SA', gender: 'M', meaning: 'Eternal' },
-    'Yasmin': { region: 'SA', gender: 'F', meaning: 'Jasmine flower' },
-    'Ibrahim': { region: 'SA', gender: 'M', meaning: 'Father of many' },
-    'Hana': { region: 'SA', gender: 'F', meaning: 'Happiness' },
-    'Mahmoud': { region: 'SA', gender: 'M', meaning: 'Praiseworthy' },
-    'Mariam': { region: 'SA', gender: 'F', meaning: 'Sea of bitterness' },
-    'Tariq': { region: 'SA', gender: 'M', meaning: 'Morning star' },
-    'Nadine': { region: 'SA', gender: 'F', meaning: 'Hope' },
-    'Karim': { region: 'SA', gender: 'M', meaning: 'Generous' },
-    'Leila': { region: 'SA', gender: 'F', meaning: 'Dark beauty' },
-    'Samir': { region: 'SA', gender: 'M', meaning: 'Companion' },
-    'Rania': { region: 'SA', gender: 'F', meaning: 'Queen' },
-    
-    // Afrykańskie imiona (200+)
-    'Kofi': { region: 'GH', gender: 'M', meaning: 'Born on Friday' },
-    'Kwame': { region: 'GH', gender: 'M', meaning: 'Born on Saturday' },
-    'Kemi': { region: 'NG', gender: 'F', meaning: 'Sweet' },
-    'Biko': { region: 'ZA', gender: 'M', meaning: 'Ask' },
-    'Amani': { region: 'TZ', gender: 'F', meaning: 'Peace' },
-    'Jabari': { region: 'TZ', gender: 'M', meaning: 'Brave' },
-    'Zuri': { region: 'KE', gender: 'F', meaning: 'Beautiful' },
-    'Kato': { region: 'UG', gender: 'M', meaning: 'Second of twins' },
-    'Amara': { region: 'NG', gender: 'F', meaning: 'Grace' },
-    'Zaire': { region: 'CD', gender: 'M', meaning: 'River' },
-    'Kaya': { region: 'ZA', gender: 'F', meaning: 'Restful place' },
-    'Mosi': { region: 'TZ', gender: 'M', meaning: 'First born' },
-    'Nala': { region: 'ZA', gender: 'F', meaning: 'Successful' },
-    'Tau': { region: 'BW', gender: 'M', meaning: 'Lion' },
-    'Adia': { region: 'KE', gender: 'F', meaning: 'Gift' },
-    'Kenyatta': { region: 'KE', gender: 'M', meaning: 'Musician' },
-    'Zola': { region: 'ZA', gender: 'F', meaning: 'Quiet' },
-    'Mandela': { region: 'ZA', gender: 'M', meaning: 'Leader' },
-    'Thandi': { region: 'ZA', gender: 'F', meaning: 'Loved' },
-    'Kwesi': { region: 'GH', gender: 'M', meaning: 'Born on Sunday' },
-    'Akua': { region: 'GH', gender: 'F', meaning: 'Born on Wednesday' },
-    'Chike': { region: 'NG', gender: 'M', meaning: 'God\'s power' },
-    'Chioma': { region: 'NG', gender: 'F', meaning: 'Good God' },
-    
-    // Azjatyckie imiona (300+)
-    'Hiroto': { region: 'JP', gender: 'M', meaning: 'Big flight' },
-    'Sakura': { region: 'JP', gender: 'F', meaning: 'Cherry blossom' },
-    'Kenji': { region: 'JP', gender: 'M', meaning: 'Strong, second' },
-    'Aiko': { region: 'JP', gender: 'F', meaning: 'Love child' },
-    'Takashi': { region: 'JP', gender: 'M', meaning: 'Noble, prosperous' },
-    'Yuki': { region: 'JP', gender: 'F', meaning: 'Happiness, snow' },
-    'Wei': { region: 'CN', gender: 'M', meaning: 'Greatness, extraordinary' },
-    'Li': { region: 'CN', gender: 'F', meaning: 'Beautiful, strength' },
-    'Zhang': { region: 'CN', gender: 'M', meaning: 'Stretch, open' },
-    'Wang': { region: 'CN', gender: 'F', meaning: 'King, monarch' },
-    'Chen': { region: 'CN', gender: 'M', meaning: 'Morning, dawn' },
-    'Liu': { region: 'CN', gender: 'F', meaning: 'Willow tree' },
-    'Yuki': { region: 'JP', gender: 'F', meaning: 'Happiness' },
-    'Haruto': { region: 'JP', gender: 'M', meaning: 'Sun flying' },
-    'Mio': { region: 'JP', gender: 'F', meaning: 'Cherry blossom' },
-    'Yuto': { region: 'JP', gender: 'M', meaning: 'Gentle' },
-    'Hina': { region: 'JP', gender: 'F', meaning: 'Sunlight' },
-    'Kento': { region: 'JP', gender: 'M', meaning: 'Strong' },
-    'Yui': { region: 'JP', gender: 'F', meaning: 'Bind' },
-    'Riku': { region: 'JP', gender: 'M', meaning: 'Land' },
-    'Sora': { region: 'JP', gender: 'F', meaning: 'Sky' },
-    'Jin': { region: 'CN', gender: 'M', meaning: 'Gold' },
-    'Mei': { region: 'CN', gender: 'F', meaning: 'Beautiful' },
-    'Xiang': { region: 'CN', gender: 'M', meaning: 'Fragrant' },
-    'Xia': { region: 'CN', gender: 'F', meaning: 'Summer' },
-    'Ming': { region: 'CN', gender: 'M', meaning: 'Bright' },
-    'Ling': { region: 'CN', gender: 'F', meaning: 'Spirit' },
-    
-    // Europejskie imiona (1000+)
-    'Anna': { region: 'PL', gender: 'F', meaning: 'Grace, favor' },
-    'Jan': { region: 'PL', gender: 'M', meaning: 'God is gracious' },
-    'Piotr': { region: 'PL', gender: 'M', meaning: 'Rock, stone' },
-    'Maria': { region: 'PL', gender: 'F', meaning: 'Sea of bitterness, beloved' },
-    'Krzysztof': { region: 'PL', gender: 'M', meaning: 'Bearer of Christ' },
-    'Katarzyna': { region: 'PL', gender: 'F', meaning: 'Pure' },
-    'Andrzej': { region: 'PL', gender: 'M', meaning: 'Manly, brave' },
-    'Magdalena': { region: 'PL', gender: 'F', meaning: 'From Magdala' },
-    'Stanisław': { region: 'PL', gender: 'M', meaning: 'Glorious government' },
-    'Elżbieta': { region: 'PL', gender: 'F', meaning: 'God is my oath' },
-    'John': { region: 'EN', gender: 'M', meaning: 'God is gracious' },
-    'Mary': { region: 'EN', gender: 'F', meaning: 'Sea of bitterness, beloved' },
-    'William': { region: 'EN', gender: 'M', meaning: 'Resolute protector' },
-    'Elizabeth': { region: 'EN', gender: 'F', meaning: 'God is my oath' },
-    'James': { region: 'EN', gender: 'M', meaning: 'Supplanter' },
-    'Patricia': { region: 'EN', gender: 'F', meaning: 'Noble' },
-    'Robert': { region: 'EN', gender: 'M', meaning: 'Bright fame' },
-    'Jennifer': { region: 'EN', gender: 'F', meaning: 'White shadow, white wave' },
-    'Michael': { region: 'EN', gender: 'M', meaning: 'Who is like God?' },
-    'Linda': { region: 'EN', gender: 'F', meaning: 'Beautiful' },
-    'Hans': { region: 'DE', gender: 'M', meaning: 'God is gracious' },
-    'Peter': { region: 'DE', gender: 'M', meaning: 'Rock, stone' },
-    'Klaus': { region: 'DE', gender: 'M', meaning: 'Victory of the people' },
-    'Greta': { region: 'DE', gender: 'F', meaning: 'Pearl' },
-    'Wolfgang': { region: 'DE', gender: 'M', meaning: 'Wolf path' },
-    'Helena': { region: 'DE', gender: 'F', meaning: 'Bright, shining light' },
-    'Jean': { region: 'FR', gender: 'M', meaning: 'God is gracious' },
-    'Pierre': { region: 'FR', gender: 'M', meaning: 'Rock, stone' },
-    'Sophie': { region: 'FR', gender: 'F', meaning: 'Wisdom' },
-    'Louis': { region: 'FR', gender: 'M', meaning: 'Famous warrior' },
-    'Camille': { region: 'FR', gender: 'F', meaning: 'Perfect' },
-    'Juan': { region: 'ES', gender: 'M', meaning: 'God is gracious' },
-    'Carlos': { region: 'ES', gender: 'M', meaning: 'Free man' },
-    'Carmen': { region: 'ES', gender: 'F', meaning: 'Garden' },
-    'Jose': { region: 'ES', gender: 'M', meaning: 'God will increase' },
-    'Ana': { region: 'ES', gender: 'F', meaning: 'Grace, favor' },
-    'Giuseppe': { region: 'IT', gender: 'M', meaning: 'God will increase' },
-    'Marco': { region: 'IT', gender: 'M', meaning: 'Warlike' },
-    'Giulia': { region: 'IT', gender: 'F', meaning: 'Youthful' },
-    'Antonio': { region: 'IT', gender: 'M', meaning: 'Priceless' },
-    'Sofia': { region: 'IT', gender: 'F', meaning: 'Wisdom' },
-    'Alexander': { region: 'RU', gender: 'M', meaning: 'Defender of the people' },
-    'Dmitry': { region: 'RU', gender: 'M', meaning: 'Follower of Demeter' },
-    'Sergey': { region: 'RU', gender: 'M', meaning: 'Servant' },
-    'Elena': { region: 'RU', gender: 'F', meaning: 'Bright, shining light' },
-    'Olga': { region: 'RU', gender: 'F', meaning: 'Holy' }
+	// Indyjskie imiona (200+)
+	'Dileep': { region: 'IN', gender: 'M', meaning: 'Protector of the poor' },
+	'Arwen': { region: 'IN', gender: 'F', meaning: 'Noble maiden' },
+	'Krishna': { region: 'IN', gender: 'M', meaning: 'Dark, attractive' },
+	'Priya': { region: 'IN', gender: 'F', meaning: 'Beloved, dear' },
+	'Arjun': { region: 'IN', gender: 'M', meaning: 'Bright, white, clear' },
+	'Anjali': { region: 'IN', gender: 'F', meaning: 'Offering, gift' },
+	'Vikram': { region: 'IN', gender: 'M', meaning: 'Valour, bravery' },
+	'Meera': { region: 'IN', gender: 'F', meaning: 'Prosperous, ocean' },
+	'Amit': { region: 'IN', gender: 'M', meaning: 'Infinite' },
+	'Kavya': { region: 'IN', gender: 'F', meaning: 'Poetry' },
+	'Raj': { region: 'IN', gender: 'M', meaning: 'King' },
+	'Divya': { region: 'IN', gender: 'F', meaning: 'Divine' },
+	'Suresh': { region: 'IN', gender: 'M', meaning: 'Lord of gods' },
+	'Pooja': { region: 'IN', gender: 'F', meaning: 'Worship' },
+	'Mohan': { region: 'IN', gender: 'M', meaning: 'Charming' },
+	'Neha': { region: 'IN', gender: 'F', meaning: 'Love' },
+	'Rahul': { region: 'IN', gender: 'M', meaning: 'Able, efficient' },
+	'Priyanka': { region: 'IN', gender: 'F', meaning: 'Beautiful' },
+	'Vishal': { region: 'IN', gender: 'M', meaning: 'Huge, vast' },
+	'Ananya': { region: 'IN', gender: 'F', meaning: 'Unique' },
+	'Aditya': { region: 'IN', gender: 'M', meaning: 'Sun god' },
+	'Ishita': { region: 'IN', gender: 'F', meaning: 'Desired' },
+	'Karan': { region: 'IN', gender: 'M', meaning: 'Clever' },
+	'Riya': { region: 'IN', gender: 'F', meaning: 'Singer' },
+	'Dhruv': { region: 'IN', gender: 'M', meaning: 'Pole star' },
+	'Zara': { region: 'IN', gender: 'F', meaning: 'Princess' },
+	
+	// Arabskie imiona (200+)
+	'Ahmed': { region: 'SA', gender: 'M', meaning: 'Most commendable' },
+	'Fatima': { region: 'SA', gender: 'F', meaning: 'One who abstains' },
+	'Mohammed': { region: 'SA', gender: 'M', meaning: 'Praiseworthy' },
+	'Aisha': { region: 'SA', gender: 'F', meaning: 'Alive, living' },
+	'Ali': { region: 'SA', gender: 'M', meaning: 'High, elevated' },
+	'Zara': { region: 'SA', gender: 'F', meaning: 'Princess, flower' },
+	'Hassan': { region: 'SA', gender: 'M', meaning: 'Handsome' },
+	'Layla': { region: 'SA', gender: 'F', meaning: 'Night' },
+	'Omar': { region: 'SA', gender: 'M', meaning: 'Long-lived' },
+	'Noor': { region: 'SA', gender: 'F', meaning: 'Light' },
+	'Yusuf': { region: 'SA', gender: 'M', meaning: 'God will increase' },
+	'Amira': { region: 'SA', gender: 'F', meaning: 'Princess' },
+	'Khalid': { region: 'SA', gender: 'M', meaning: 'Eternal' },
+	'Yasmin': { region: 'SA', gender: 'F', meaning: 'Jasmine flower' },
+	'Ibrahim': { region: 'SA', gender: 'M', meaning: 'Father of many' },
+	'Hana': { region: 'SA', gender: 'F', meaning: 'Happiness' },
+	'Mahmoud': { region: 'SA', gender: 'M', meaning: 'Praiseworthy' },
+	'Mariam': { region: 'SA', gender: 'F', meaning: 'Sea of bitterness' },
+	'Tariq': { region: 'SA', gender: 'M', meaning: 'Morning star' },
+	'Nadine': { region: 'SA', gender: 'F', meaning: 'Hope' },
+	'Karim': { region: 'SA', gender: 'M', meaning: 'Generous' },
+	'Leila': { region: 'SA', gender: 'F', meaning: 'Dark beauty' },
+	'Samir': { region: 'SA', gender: 'M', meaning: 'Companion' },
+	'Rania': { region: 'SA', gender: 'F', meaning: 'Queen' },
+	
+	// Afrykańskie imiona (200+)
+	'Kofi': { region: 'GH', gender: 'M', meaning: 'Born on Friday' },
+	'Kwame': { region: 'GH', gender: 'M', meaning: 'Born on Saturday' },
+	'Kemi': { region: 'NG', gender: 'F', meaning: 'Sweet' },
+	'Biko': { region: 'ZA', gender: 'M', meaning: 'Ask' },
+	'Amani': { region: 'TZ', gender: 'F', meaning: 'Peace' },
+	'Jabari': { region: 'TZ', gender: 'M', meaning: 'Brave' },
+	'Zuri': { region: 'KE', gender: 'F', meaning: 'Beautiful' },
+	'Kato': { region: 'UG', gender: 'M', meaning: 'Second of twins' },
+	'Amara': { region: 'NG', gender: 'F', meaning: 'Grace' },
+	'Zaire': { region: 'CD', gender: 'M', meaning: 'River' },
+	'Kaya': { region: 'ZA', gender: 'F', meaning: 'Restful place' },
+	'Mosi': { region: 'TZ', gender: 'M', meaning: 'First born' },
+	'Nala': { region: 'ZA', gender: 'F', meaning: 'Successful' },
+	'Tau': { region: 'BW', gender: 'M', meaning: 'Lion' },
+	'Adia': { region: 'KE', gender: 'F', meaning: 'Gift' },
+	'Kenyatta': { region: 'KE', gender: 'M', meaning: 'Musician' },
+	'Zola': { region: 'ZA', gender: 'F', meaning: 'Quiet' },
+	'Mandela': { region: 'ZA', gender: 'M', meaning: 'Leader' },
+	'Thandi': { region: 'ZA', gender: 'F', meaning: 'Loved' },
+	'Kwesi': { region: 'GH', gender: 'M', meaning: 'Born on Sunday' },
+	'Akua': { region: 'GH', gender: 'F', meaning: 'Born on Wednesday' },
+	'Chike': { region: 'NG', gender: 'M', meaning: 'God\'s power' },
+	'Chioma': { region: 'NG', gender: 'F', meaning: 'Good God' },
+	
+	// Azjatyckie imiona (300+)
+	'Hiroto': { region: 'JP', gender: 'M', meaning: 'Big flight' },
+	'Sakura': { region: 'JP', gender: 'F', meaning: 'Cherry blossom' },
+	'Kenji': { region: 'JP', gender: 'M', meaning: 'Strong, second' },
+	'Aiko': { region: 'JP', gender: 'F', meaning: 'Love child' },
+	'Takashi': { region: 'JP', gender: 'M', meaning: 'Noble, prosperous' },
+	'Yuki': { region: 'JP', gender: 'F', meaning: 'Happiness, snow' },
+	'Wei': { region: 'CN', gender: 'M', meaning: 'Greatness, extraordinary' },
+	'Li': { region: 'CN', gender: 'F', meaning: 'Beautiful, strength' },
+	'Zhang': { region: 'CN', gender: 'M', meaning: 'Stretch, open' },
+	'Wang': { region: 'CN', gender: 'F', meaning: 'King, monarch' },
+	'Chen': { region: 'CN', gender: 'M', meaning: 'Morning, dawn' },
+	'Liu': { region: 'CN', gender: 'F', meaning: 'Willow tree' },
+	'Yuki': { region: 'JP', gender: 'F', meaning: 'Happiness' },
+	'Haruto': { region: 'JP', gender: 'M', meaning: 'Sun flying' },
+	'Mio': { region: 'JP', gender: 'F', meaning: 'Cherry blossom' },
+	'Yuto': { region: 'JP', gender: 'M', meaning: 'Gentle' },
+	'Hina': { region: 'JP', gender: 'F', meaning: 'Sunlight' },
+	'Kento': { region: 'JP', gender: 'M', meaning: 'Strong' },
+	'Yui': { region: 'JP', gender: 'F', meaning: 'Bind' },
+	'Riku': { region: 'JP', gender: 'M', meaning: 'Land' },
+	'Sora': { region: 'JP', gender: 'F', meaning: 'Sky' },
+	'Jin': { region: 'CN', gender: 'M', meaning: 'Gold' },
+	'Mei': { region: 'CN', gender: 'F', meaning: 'Beautiful' },
+	'Xiang': { region: 'CN', gender: 'M', meaning: 'Fragrant' },
+	'Xia': { region: 'CN', gender: 'F', meaning: 'Summer' },
+	'Ming': { region: 'CN', gender: 'M', meaning: 'Bright' },
+	'Ling': { region: 'CN', gender: 'F', meaning: 'Spirit' },
+	
+	// Europejskie imiona (1000+)
+	'Anna': { region: 'PL', gender: 'F', meaning: 'Grace, favor' },
+	'Jan': { region: 'PL', gender: 'M', meaning: 'God is gracious' },
+	'Piotr': { region: 'PL', gender: 'M', meaning: 'Rock, stone' },
+	'Maria': { region: 'PL', gender: 'F', meaning: 'Sea of bitterness, beloved' },
+	'Krzysztof': { region: 'PL', gender: 'M', meaning: 'Bearer of Christ' },
+	'Katarzyna': { region: 'PL', gender: 'F', meaning: 'Pure' },
+	'Andrzej': { region: 'PL', gender: 'M', meaning: 'Manly, brave' },
+	'Magdalena': { region: 'PL', gender: 'F', meaning: 'From Magdala' },
+	'Stanisław': { region: 'PL', gender: 'M', meaning: 'Glorious government' },
+	'Elżbieta': { region: 'PL', gender: 'F', meaning: 'God is my oath' },
+	'John': { region: 'EN', gender: 'M', meaning: 'God is gracious' },
+	'Mary': { region: 'EN', gender: 'F', meaning: 'Sea of bitterness, beloved' },
+	'William': { region: 'EN', gender: 'M', meaning: 'Resolute protector' },
+	'Elizabeth': { region: 'EN', gender: 'F', meaning: 'God is my oath' },
+	'James': { region: 'EN', gender: 'M', meaning: 'Supplanter' },
+	'Patricia': { region: 'EN', gender: 'F', meaning: 'Noble' },
+	'Robert': { region: 'EN', gender: 'M', meaning: 'Bright fame' },
+	'Jennifer': { region: 'EN', gender: 'F', meaning: 'White shadow, white wave' },
+	'Michael': { region: 'EN', gender: 'M', meaning: 'Who is like God?' },
+	'Linda': { region: 'EN', gender: 'F', meaning: 'Beautiful' },
+	'Hans': { region: 'DE', gender: 'M', meaning: 'God is gracious' },
+	'Peter': { region: 'DE', gender: 'M', meaning: 'Rock, stone' },
+	'Klaus': { region: 'DE', gender: 'M', meaning: 'Victory of the people' },
+	'Greta': { region: 'DE', gender: 'F', meaning: 'Pearl' },
+	'Wolfgang': { region: 'DE', gender: 'M', meaning: 'Wolf path' },
+	'Helena': { region: 'DE', gender: 'F', meaning: 'Bright, shining light' },
+	'Jean': { region: 'FR', gender: 'M', meaning: 'God is gracious' },
+	'Pierre': { region: 'FR', gender: 'M', meaning: 'Rock, stone' },
+	'Sophie': { region: 'FR', gender: 'F', meaning: 'Wisdom' },
+	'Louis': { region: 'FR', gender: 'M', meaning: 'Famous warrior' },
+	'Camille': { region: 'FR', gender: 'F', meaning: 'Perfect' },
+	'Juan': { region: 'ES', gender: 'M', meaning: 'God is gracious' },
+	'Carlos': { region: 'ES', gender: 'M', meaning: 'Free man' },
+	'Carmen': { region: 'ES', gender: 'F', meaning: 'Garden' },
+	'Jose': { region: 'ES', gender: 'M', meaning: 'God will increase' },
+	'Ana': { region: 'ES', gender: 'F', meaning: 'Grace, favor' },
+	'Giuseppe': { region: 'IT', gender: 'M', meaning: 'God will increase' },
+	'Marco': { region: 'IT', gender: 'M', meaning: 'Warlike' },
+	'Giulia': { region: 'IT', gender: 'F', meaning: 'Youthful' },
+	'Antonio': { region: 'IT', gender: 'M', meaning: 'Priceless' },
+	'Sofia': { region: 'IT', gender: 'F', meaning: 'Wisdom' },
+	'Alexander': { region: 'RU', gender: 'M', meaning: 'Defender of the people' },
+	'Dmitry': { region: 'RU', gender: 'M', meaning: 'Follower of Demeter' },
+	'Sergey': { region: 'RU', gender: 'M', meaning: 'Servant' },
+	'Elena': { region: 'RU', gender: 'F', meaning: 'Bright, shining light' },
+	'Olga': { region: 'RU', gender: 'F', meaning: 'Holy' }
 };
 
 // Funkcja pobierająca imiona z Random User Generator (bez limitu)
@@ -217,44 +217,44 @@ async function fetchNamesFromRandomUser(count) {
 
 // Funkcja pobierająca dodatkowe imiona z różnych źródeł
 async function fetchNamesFromMultipleSources() {
-	const additionalNames = new Set();
-
-	console.log('🌍 Pobieram dodatkowe imiona z różnych źródeł...');
-
-	try {
-		// Pobierz popularne imiona z różnych krajów
-		const countries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'PL', 'RU', 'JP', 'CN', 'IN', 'BR', 'MX', 'CA', 'AU', 'NL', 'SE', 'NO', 'DK', 'FI'];
-
-		for (const country of countries) {
-			try {
-				console.log(`🇺🇸 Pobieram imiona z ${country}...`);
-
-				// Jedno zapytanie z wieloma wynikami
-				const url = `https://randomuser.me/api/?nat=${country}&results=500&inc=name,nat&noinfo`;
-				const response = await axios.get(url);
-				const results = Array.isArray(response?.data?.results) ? response.data.results : [];
-
-				for (let i = 0; i < results.length; i++) {
-					const user = results[i];
-					const first = user?.name?.first;
-					const last = user?.name?.last;
-					if (first && typeof first === 'string') additionalNames.add(first);
-					if (last && typeof last === 'string') additionalNames.add(last);
+	const countries = [
+		'US', 'GB', 'CA', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'SE', 'NO', 'DK', 'FI',
+		'PL', 'RU', 'JP', 'CN', 'IN', 'BR', 'MX', 'AR', 'CL', 'CO', 'PE', 'VE',
+		'ZA', 'NG', 'KE', 'GH', 'TZ', 'UG', 'BW', 'CD', 'SA', 'AE', 'EG', 'MA',
+		'TH', 'VN', 'MY', 'SG', 'ID', 'PH', 'KR', 'TR', 'IL', 'IR', 'PK', 'BD'
+	];
+	
+	let totalFetched = 0;
+	
+	for (const country of countries) {
+		try {
+			const response = await axios.get(`https://randomuser.me/api/?nat=${country}&results=1000&inc=name,nat&noinfo`);
+			const users = response.data.results;
+			
+			for (const user of users) {
+				if (user?.name?.first && user?.name?.last) {
+					const firstName = user.name.first.trim();
+					const lastName = user.name.last.trim();
+					
+					if (firstName && lastName && firstName.length > 1 && lastName.length > 1) {
+						allNames.add(firstName);
+						allNames.add(lastName);
+						totalFetched += 2;
+					}
 				}
-
-				console.log(`✅ Pobrano imiona z ${country} (${results.length})`);
-
-				// Krótkie opóźnienie między krajami
-				await new Promise(resolve => setTimeout(resolve, 100));
-			} catch (error) {
-				console.error(`❌ Błąd dla kraju ${country}:`, error?.message || error);
 			}
+			
+			console.log(`🌍 ${country}: +${users.length * 2} imion (total: ${totalFetched})`);
+			
+			// Krótkie opóźnienie między krajami
+			await new Promise(resolve => setTimeout(resolve, 200));
+			
+		} catch (error) {
+			console.warn(`⚠️ Błąd dla kraju ${country}:`, error.message);
 		}
-	} catch (error) {
-		console.error('❌ Błąd pobierania dodatkowych imion:', error?.message || error);
 	}
-
-	return Array.from(additionalNames);
+	
+	return totalFetched;
 }
 
 // Funkcja dodająca popularne imiona z bazy
