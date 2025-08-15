@@ -9,7 +9,8 @@ const CONFIG = {
     totalNames: 50000,        // 50,000 imion!
     batchSize: 500,           // Większe partie
     delayBetweenBatches: 2000, // Większe opóźnienia
-    delayBetweenRequests: 30   // Szybsze requesty
+    delayBetweenRequests: 30,   // Szybsze requesty
+    enrich: false             // Pomiń wzbogacanie, tylko lista imion
 };
 
 // Rozszerzona baza popularnych imion z różnych kultur
@@ -131,86 +132,88 @@ const POPULAR_NAMES_DB = {
 
 // Funkcja pobierająca imiona z Random User Generator (bez limitu)
 async function fetchNamesFromRandomUser(count) {
-    const names = new Set();
-    const batches = Math.ceil(count / CONFIG.batchSize);
-    
-    console.log(`🔄 Pobieram ${count} imion w ${batches} partiach...`);
-    
-    for (let batch = 0; batch < batches; batch++) {
-        const batchCount = Math.min(CONFIG.batchSize, count - batch * CONFIG.batchSize);
-        console.log(`📦 Partia ${batch + 1}/${batches}: ${batchCount} imion`);
-        
-        for (let i = 0; i < batchCount; i++) {
-            try {
-                const response = await axios.get('https://randomuser.me/api/');
-                const user = response.data.results[0];
-                
-                // Dodaj imię i nazwisko
-                names.add(user.name.first);
-                names.add(user.name.last);
-                
-                // Dodaj narodowość
-                const nationality = user.nat;
-                
-                if (i % 50 === 0) {
-                    console.log(`   ✅ ${user.name.first} ${user.name.last} (${nationality})`);
-                }
-                
-                // Małe opóźnienie między requestami
-                await new Promise(resolve => setTimeout(resolve, CONFIG.delayBetweenRequests));
-                
-            } catch (error) {
-                console.error(`❌ Błąd w partii ${batch + 1}:`, error.message);
-            }
-        }
-        
-        // Opóźnienie między partiami
-        if (batch < batches - 1) {
-            console.log(`⏳ Czekam ${CONFIG.delayBetweenBatches}ms przed następną partią...`);
-            await new Promise(resolve => setTimeout(resolve, CONFIG.delayBetweenBatches));
-        }
-    }
-    
-    return Array.from(names);
+	const names = new Set();
+	const batches = Math.ceil(count / CONFIG.batchSize);
+
+	console.log(`🔄 Pobieram ${count} imion w ${batches} partiach...`);
+
+	for (let batch = 0; batch < batches; batch++) {
+		const batchCount = Math.min(CONFIG.batchSize, count - batch * CONFIG.batchSize);
+		console.log(`📦 Partia ${batch + 1}/${batches}: ${batchCount} imion`);
+
+		try {
+			// Jedno zapytanie z wieloma wynikami zamiast wielu pojedynczych
+			const url = `https://randomuser.me/api/?results=${batchCount}&inc=name,nat&noinfo`;
+			const response = await axios.get(url);
+			const results = Array.isArray(response?.data?.results) ? response.data.results : [];
+
+			for (let i = 0; i < results.length; i++) {
+				const user = results[i];
+				const first = user?.name?.first;
+				const last = user?.name?.last;
+				const nationality = user?.nat || 'UN';
+
+				if (first && typeof first === 'string') names.add(first);
+				if (last && typeof last === 'string') names.add(last);
+
+				if (i % 50 === 0 && first && last) {
+					console.log(`   ✅ ${first} ${last} (${nationality})`);
+				}
+			}
+		} catch (error) {
+			console.error(`❌ Błąd w partii ${batch + 1}:`, error?.message || error);
+		}
+
+		// Opóźnienie między partiami
+		if (batch < batches - 1) {
+			console.log(`⏳ Czekam ${CONFIG.delayBetweenBatches}ms przed następną partią...`);
+			await new Promise(resolve => setTimeout(resolve, CONFIG.delayBetweenBatches));
+		}
+	}
+
+	return Array.from(names);
 }
 
 // Funkcja pobierająca dodatkowe imiona z różnych źródeł
 async function fetchNamesFromMultipleSources() {
-    const additionalNames = new Set();
-    
-    console.log('🌍 Pobieram dodatkowe imiona z różnych źródeł...');
-    
-    try {
-        // Pobierz popularne imiona z różnych krajów
-        const countries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'PL', 'RU', 'JP', 'CN', 'IN', 'BR', 'MX', 'CA', 'AU'];
-        
-        for (const country of countries) {
-            try {
-                console.log(`🇺🇸 Pobieram imiona z ${country}...`);
-                
-                // Pobierz 200 imion z każdego kraju
-                for (let i = 0; i < 200; i++) {
-                    const response = await axios.get(`https://randomuser.me/api/?nat=${country}`);
-                    const user = response.data.results[0];
-                    
-                    additionalNames.add(user.name.first);
-                    additionalNames.add(user.name.last);
-                    
-                    await new Promise(resolve => setTimeout(resolve, 30));
-                }
-                
-                console.log(`✅ Pobrano imiona z ${country}`);
-                
-            } catch (error) {
-                console.error(`❌ Błąd dla kraju ${country}:`, error.message);
-            }
-        }
-        
-    } catch (error) {
-        console.error('❌ Błąd pobierania dodatkowych imion:', error.message);
-    }
-    
-    return Array.from(additionalNames);
+	const additionalNames = new Set();
+
+	console.log('🌍 Pobieram dodatkowe imiona z różnych źródeł...');
+
+	try {
+		// Pobierz popularne imiona z różnych krajów
+		const countries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'PL', 'RU', 'JP', 'CN', 'IN', 'BR', 'MX', 'CA', 'AU'];
+
+		for (const country of countries) {
+			try {
+				console.log(`🇺🇸 Pobieram imiona z ${country}...`);
+
+				// Jedno zapytanie z wieloma wynikami
+				const url = `https://randomuser.me/api/?nat=${country}&results=200&inc=name,nat&noinfo`;
+				const response = await axios.get(url);
+				const results = Array.isArray(response?.data?.results) ? response.data.results : [];
+
+				for (let i = 0; i < results.length; i++) {
+					const user = results[i];
+					const first = user?.name?.first;
+					const last = user?.name?.last;
+					if (first && typeof first === 'string') additionalNames.add(first);
+					if (last && typeof last === 'string') additionalNames.add(last);
+				}
+
+				console.log(`✅ Pobrano imiona z ${country} (${results.length})`);
+
+				// Krótkie opóźnienie między krajami
+				await new Promise(resolve => setTimeout(resolve, 200));
+			} catch (error) {
+				console.error(`❌ Błąd dla kraju ${country}:`, error?.message || error);
+			}
+		}
+	} catch (error) {
+		console.error('❌ Błąd pobierania dodatkowych imion:', error?.message || error);
+	}
+
+	return Array.from(additionalNames);
 }
 
 // Funkcja dodająca popularne imiona z bazy
@@ -392,7 +395,7 @@ function saveNamesToFiles(names, enrichedNames) {
 
 // Główna funkcja
 async function main() {
-    console.log('🚀 ROZPOCZYNAM POBIERANIE 50,000+ IMION Z CAŁEGO ŚWIATA!');
+    console.log('\ud83d\ude80 ROZPOCZYNAM POBIERANIE 50,000+ IMION Z CAŁEGO ŚWIATA!');
     console.log('=' .repeat(70));
     
     const startTime = Date.now();
@@ -417,13 +420,28 @@ async function main() {
         const allNames = [...new Set([...basicNames, ...additionalNames, ...popularNames])];
         console.log(`📊 Łącznie: ${allNames.length} unikalnych imion`);
         
-        // Krok 5: Wzbogać o informacje
-        console.log('\n🔍 KROK 4: Wzbogacanie o informacje (płeć, narodowość, znaczenie)...');
-        const enrichedNames = await enrichNamesWithInfo(allNames);
-        console.log(`✅ Wzbogacono ${enrichedNames.length} imion`);
+        let enrichedNames;
+        if (CONFIG.enrich) {
+            // Krok 5: Wzbogać o informacje
+            console.log('\n🔍 KROK 4: Wzbogacanie o informacje (płeć, narodowość, znaczenie)...');
+            enrichedNames = await enrichNamesWithInfo(allNames);
+            console.log(`✅ Wzbogacono ${enrichedNames.length} imion`);
+        } else {
+            console.log('\n⏭️ POMIJAM wzbogacanie (CONFIG.enrich=false). Generuję minimalne wpisy...');
+            enrichedNames = allNames.map(name => ({
+                name,
+                gender: 'unknown',
+                genderProbability: 0,
+                nationality: 'unknown',
+                nationalityProbability: 0,
+                meaning: 'Unknown',
+                source: 'ListOnly',
+                timestamp: new Date().toISOString()
+            }));
+        }
         
         // Krok 6: Zapisz do plików
-        console.log('\n💾 KROK 5: Zapisuję do plików...');
+        console.log('\n\ud83d\udcbe KROK 5: Zapisuję do plików...');
         saveNamesToFiles(allNames, enrichedNames);
         
         // Podsumowanie
@@ -438,7 +456,7 @@ async function main() {
             acc[n.nationality] = true;
             return acc;
         }, {})).length}`);
-        console.log(`📁 Pliki zapisane w folderze`);
+        console.log(`\ud83d\udcc1 Pliki zapisane w folderze`);
         console.log('\n🚀 Teraz masz prawdziwie światową bazę imion!');
         
     } catch (error) {
