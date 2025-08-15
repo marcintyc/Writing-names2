@@ -21,6 +21,7 @@ const state = {
 	mode: 'names',
 	lastSubscriberName: '',
 	lastNameInfo: null, // New state variable for name info
+	namesDatabase: new Set(), // Database of known names
 };
 
 const els = {
@@ -167,7 +168,7 @@ function rebuildCountsFromList() {
 				state.countryCounts.set(c, prev + 1);
 			}
 		} else {
-			const name = extractValidName(raw);
+			const name = await extractValidName(raw);
 			if (name) {
 				const prev = state.nameCounts.get(name) || 0;
 				state.nameCounts.set(name, prev + 1);
@@ -308,7 +309,7 @@ function isNoiseMessage(message) {
 }
 
 // Test function for name validation
-function testNameExtraction() {
+async function testNameExtraction() {
 	const testMessages = [
 		"pls my sister name Alexa",
 		"please write my brother name John",
@@ -323,14 +324,34 @@ function testNameExtraction() {
 	];
 	
 	console.log("=== Test walidacji imion ===");
-	testMessages.forEach(msg => {
-		const extracted = extractValidName(msg);
+	for (const msg of testMessages) {
+		const extracted = await extractValidName(msg);
 		console.log(`"${msg}" -> "${extracted}"`);
-	});
+	}
+}
+
+// Test function for database functionality
+async function testDatabase() {
+	console.log("=== Test bazy imion ===");
+	console.log(`📊 Załadowane imiona: ${state.namesDatabase.size}`);
+	
+	const testNames = ['Alexa', 'John', 'Anna', 'Michael', 'Piotr', 'Sarah', 'David', 'Krzysztof', 'Emma', 'Robert'];
+	
+	for (const name of testNames) {
+		const exists = isNameInDatabase(name);
+		console.log(`"${name}" -> ${exists ? '✅ Istnieje' : '❌ Nowe'}`);
+		
+		if (!exists) {
+			const result = await addNameToDatabase(name);
+			console.log(`   Dodanie: ${result.message}`);
+		}
+	}
+	
+	console.log(`📊 Po teście: ${state.namesDatabase.size} imion`);
 }
 
 // Simple name validation - extract names from various message formats
-function extractValidName(message) {
+async function extractValidName(message) {
 	if (isNoiseMessage(message)) return null;
 	if (!message) return null;
 	
@@ -365,7 +386,10 @@ function extractValidName(message) {
 		if (match && match[1]) {
 			const extractedName = match[1].trim();
 			if (isValidNameFormat(extractedName)) {
-				return formatName(extractedName);
+				const formattedName = formatName(extractedName);
+				// Check if name is new and add to database
+				await checkAndAddNameToDatabase(formattedName);
+				return formattedName;
 			}
 		}
 	}
@@ -385,10 +409,28 @@ function extractValidName(message) {
 	
 	if (nameTokens.length > 0) {
 		// Take the first valid name token
-		return formatName(nameTokens[0]);
+		const formattedName = formatName(nameTokens[0]);
+		// Check if name is new and add to database
+		await checkAndAddNameToDatabase(formattedName);
+		return formattedName;
 	}
 	
 	return null;
+}
+
+// Helper function to check and add name to database
+async function checkAndAddNameToDatabase(name) {
+	if (!name || isNameInDatabase(name)) {
+		return; // Name already exists
+	}
+	
+	// Add new name to database
+	const result = await addNameToDatabase(name);
+	if (result.success) {
+		showDatabaseMessage(result.message, true);
+	} else {
+		showDatabaseMessage(result.message, false);
+	}
 }
 
 function isValidNameFormat(name) {
@@ -403,6 +445,61 @@ function isValidNameFormat(name) {
 function formatName(name) {
 	// Title Case: first letter uppercase, rest lowercase
 	return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}
+
+// Database management functions
+async function loadNamesDatabase() {
+	try {
+		const response = await fetch('names-list-extended.txt');
+		if (response.ok) {
+			const text = await response.text();
+			const names = text.split('\n').filter(name => name.trim());
+			state.namesDatabase = new Set(names);
+			console.log(`✅ Loaded ${state.namesDatabase.size} names from database`);
+			return true;
+		}
+	} catch (error) {
+		console.warn('⚠️ Could not load names database:', error);
+	}
+	return false;
+}
+
+function isNameInDatabase(name) {
+	return state.namesDatabase.has(name);
+}
+
+async function addNameToDatabase(name) {
+	if (!name || isNameInDatabase(name)) {
+		return { success: false, message: `Imię "${name}" już istnieje w bazie!` };
+	}
+	
+	try {
+		// Add to local database
+		state.namesDatabase.add(name);
+		
+		// Save to file (this would require server-side functionality)
+		// For now, we'll just show a success message
+		console.log(`✅ Added "${name}" to database`);
+		return { success: true, message: `Imię "${name}" zostało dodane do bazy!` };
+	} catch (error) {
+		console.error('❌ Error adding name to database:', error);
+		return { success: false, message: `Błąd podczas dodawania imienia: ${error.message}` };
+	}
+}
+
+function showDatabaseMessage(message, isSuccess = true) {
+	// Create or update status message
+	if (!els.statusBox) return;
+	
+	const originalText = els.statusBox.textContent;
+	els.statusBox.textContent = message;
+	els.statusBox.style.color = isSuccess ? '#4CAF50' : '#f44336';
+	
+	// Restore original text after 3 seconds
+	setTimeout(() => {
+		els.statusBox.textContent = originalText;
+		els.statusBox.style.color = '';
+	}, 3000);
 }
 
 function containsProfanity(text) {
@@ -622,7 +719,7 @@ async function pollChatOnce() {
 				appendEntry(country);
 				incrementCountryCount(country);
 			} else {
-				const name = extractValidName(msg);
+				const name = await extractValidName(msg);
 				if (!name) continue;
 				appendEntry(name);
 				incrementNameCount(name);
@@ -785,7 +882,7 @@ async function handleRefresh() {
 	}
 }
 
-function clearUiButKeepLastN(n) {
+async function clearUiButKeepLastN(n) {
 	const items = Array.from(els.list.querySelectorAll('li'));
 	const keep = items.slice(-n).map(li => (li.firstChild?.textContent || li.textContent || '').trim()).filter(Boolean);
 	els.list.innerHTML = '';
@@ -801,7 +898,7 @@ function clearUiButKeepLastN(n) {
 	} else {
 		state.nameCounts = new Map();
 		for (const k of keep) {
-			const name = extractValidName(k);
+			const name = await extractValidName(k);
 			if (name) incrementNameCount(name);
 		}
 	}
@@ -841,6 +938,7 @@ function setupUi() {
 	els.testKeyBtn = qs('testKeyBtn');
 	els.testLiveBtn = qs('testLiveBtn');
 	els.testNamesBtn = qs('testNamesBtn');
+	els.testDatabaseBtn = qs('testDatabaseBtn');
 	els.speedSelect = qs('speedSelect');
 	els.refreshBtn = qs('refreshBtn');
 	els.spamSelect = qs('spamSelect');
@@ -858,13 +956,13 @@ function setupUi() {
 	els.disconnectBtn.addEventListener('click', disconnectYouTube);
 	els.ytInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connectYouTube(); });
 	els.apiKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connectYouTube(); });
-	els.manualName.addEventListener('keydown', (e) => {
+	els.manualName.addEventListener('keydown', async (e) => {
 		if (e.key === 'Enter') {
 			if (state.mode === 'countries') {
 				const c = extractValidCountry(els.manualName.value);
 				if (c) { appendEntry(c); incrementCountryCount(c); }
 			} else {
-				const name = extractValidName(els.manualName.value);
+				const name = await extractValidName(els.manualName.value);
 				if (name) { appendEntry(name); incrementNameCount(name); }
 			}
 			els.manualName.value = '';
@@ -873,6 +971,7 @@ function setupUi() {
 	els.testKeyBtn.addEventListener('click', testApiKey);
 	els.testLiveBtn.addEventListener('click', testLive);
 	els.testNamesBtn.addEventListener('click', testNameExtraction);
+	els.testDatabaseBtn.addEventListener('click', testDatabase);
 	els.speedSelect.addEventListener('change', () => { state.speedMode = els.speedSelect.value; });
 	els.refreshBtn.addEventListener('click', handleRefresh);
 	if (els.softRefreshBtn) els.softRefreshBtn.addEventListener('click', handleSoftRefresh);
@@ -908,4 +1007,8 @@ function setupUi() {
 	applyModeTexts();
 }
 
-window.addEventListener('DOMContentLoaded', setupUi);
+window.addEventListener('DOMContentLoaded', async () => {
+	setupUi();
+	// Load names database on startup
+	await loadNamesDatabase();
+});
