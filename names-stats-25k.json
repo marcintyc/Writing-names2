@@ -1,0 +1,36 @@
+{
+  "totalNames": 10326,
+  "uniqueNames": 10326,
+  "genderBreakdown": {
+    "unknown": 10182,
+    "M": 76,
+    "F": 68
+  },
+  "nationalityBreakdown": {
+    "unknown": 10182,
+    "EN": 10,
+    "IN": 25,
+    "RU": 5,
+    "FR": 5,
+    "CN": 12,
+    "IT": 5,
+    "PL": 10,
+    "ZA": 6,
+    "SA": 24,
+    "ES": 5,
+    "DE": 6,
+    "GH": 4,
+    "NG": 4,
+    "TZ": 3,
+    "KE": 3,
+    "UG": 1,
+    "CD": 1,
+    "BW": 1,
+    "JP": 14
+  },
+  "sourceBreakdown": {
+    "API Error": 10182,
+    "Database": 144
+  },
+  "timestamp": "2025-08-15T16:14:24.019Z"
+}
