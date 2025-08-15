@@ -450,12 +450,28 @@ function formatName(name) {
 // Database management functions
 async function loadNamesDatabase() {
 	try {
-		const response = await fetch('names-list-extended.txt');
-		if (response.ok) {
-			const text = await response.text();
-			const names = text.split('\n').filter(name => name.trim());
-			state.namesDatabase = new Set(names);
-			console.log(`✅ Loaded ${state.namesDatabase.size} names from database`);
+		const aggregate = new Set();
+		const sources = [
+			'names-list-25k.txt',
+			'names-list-extended.txt',
+			'names-list.txt'
+		];
+		let loadedAny = false;
+		for (const src of sources) {
+			try {
+				const response = await fetch(src);
+				if (response.ok) {
+					const text = await response.text();
+					const names = text.split('\n').map(n => String(n).trim()).filter(Boolean);
+					for (const n of names) aggregate.add(n);
+					loadedAny = true;
+				}
+			} catch {}
+		}
+		if (loadedAny) {
+			state.namesDatabase = aggregate;
+			console.log(`✅ Loaded ${state.namesDatabase.size} names from database (merged sources)`);
+			setStatus?.(`Załadowano bazę: ${state.namesDatabase.size} imion`);
 			return true;
 		}
 	} catch (error) {
