@@ -74,9 +74,24 @@
 			<input id="manualName" class="manual" type="text" placeholder="Wpisz i Enter…" autocomplete="off" />
 			<div class="status" id="statusBox">Niepołączono z czatem.</div>
 			<div class="last-sub" id="lastSub">Ostatni sub/członek: —</div>
+			
+			<!-- New Name Info Panel -->
+			<div class="name-info-panel" id="nameInfoPanel" style="display: none;">
+				<h3>Informacje o imieniu</h3>
+				<div id="nameInfoContent"></div>
+			</div>
+			
+			<!-- Name Search Panel -->
+			<div class="name-search-panel">
+				<h3>Wyszukaj imiona</h3>
+				<input id="nameSearchInput" type="text" placeholder="Szukaj imion, znaczeń, regionów..." />
+				<div id="nameSearchResults" class="search-results"></div>
+			</div>
+			
 			<div class="hints">
-				<p><strong>Wskazówka</strong>: W trybie „Kraje” liczą się tylko poprawne nazwy krajów po angielsku (np. Poland, Germany, United States).</p>
-				<p><strong>Filtry</strong>: Ignorujemy komendy (! / ~), wulgaryzmy, linki i mem „DIDDY”.</p>
+				<p><strong>Wskazówka</strong>: W trybie „Kraje" liczą się tylko poprawne nazwy krajów po angielsku (np. Poland, Germany, United States).</p>
+				<p><strong>Filtry</strong>: Ignorujemy komendy (! / ~), wulgaryzmy, linki i mem „DIDDY".</p>
+				<p><strong>Nowość</strong>: Baza imion z całego świata z informacjami o znaczeniu i pochodzeniu!</p>
 			</div>
 		</section>
 		<section class="panel right">
@@ -88,6 +103,46 @@
 		<aside class="panel stats">
 			<h2 id="statsTitle">Rank Countries</h2>
 			<ul id="statsList" class="stats-list"></ul>
+			
+			<!-- New Global Names Stats -->
+			<div class="global-names-stats">
+				<h3>Statystyki imion</h3>
+				<div class="stats-grid">
+					<div class="stat-item">
+						<span class="stat-number" id="totalNamesCount">0</span>
+						<span class="stat-label">Wszystkie imiona</span>
+					</div>
+					<div class="stat-item">
+						<span class="stat-number" id="validatedNamesCount">0</span>
+						<span class="stat-label">Zweryfikowane</span>
+					</div>
+					<div class="stat-item">
+						<span class="stat-number" id="regionsCount">0</span>
+						<span class="stat-label">Regiony</span>
+					</div>
+				</div>
+				
+				<div class="region-filter">
+					<h4>Filtruj według regionu:</h4>
+					<select id="regionFilter">
+						<option value="">Wszystkie regiony</option>
+						<option value="Poland">Polska</option>
+						<option value="English">Angielskie</option>
+						<option value="Germany">Niemieckie</option>
+						<option value="France">Francuskie</option>
+						<option value="Spain">Hiszpańskie</option>
+						<option value="Italy">Włoskie</option>
+						<option value="Russia">Rosyjskie</option>
+						<option value="Japan">Japońskie</option>
+						<option value="China">Chińskie</option>
+						<option value="India">Indyjskie</option>
+						<option value="Middle East">Bliski Wschód</option>
+						<option value="Ghana">Ghana</option>
+						<option value="Nigeria">Nigeria</option>
+						<option value="South Africa">Południowa Afryka</option>
+					</select>
+				</div>
+			</div>
 		</aside>
 	</main>
 
