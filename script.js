@@ -35,6 +35,7 @@ const els = {
 	statsList: null,
 	testKeyBtn: null,
 	testLiveBtn: null,
+	testNamesBtn: null,
 	speedSelect: null,
 	refreshBtn: null,
 	spamSelect: null,
@@ -306,152 +307,29 @@ function isNoiseMessage(message) {
 	return false;
 }
 
-// Global Names Database with meanings and origins
-const GLOBAL_NAMES_DB = {
-	// Polish names
-	'Anna': { meaning: 'Grace, favor', origin: 'Hebrew', region: 'Poland', popularity: 'Very High' },
-	'Jan': { meaning: 'God is gracious', origin: 'Hebrew', region: 'Poland', popularity: 'Very High' },
-	'Piotr': { meaning: 'Rock, stone', origin: 'Greek', region: 'Poland', popularity: 'High' },
-	'Maria': { meaning: 'Sea of bitterness, beloved', origin: 'Hebrew', region: 'Poland', popularity: 'Very High' },
-	'Krzysztof': { meaning: 'Bearer of Christ', origin: 'Greek', region: 'Poland', popularity: 'High' },
-	'Katarzyna': { meaning: 'Pure', origin: 'Greek', region: 'Poland', popularity: 'High' },
-	'Andrzej': { meaning: 'Manly, brave', origin: 'Greek', region: 'Poland', popularity: 'High' },
-	'Magdalena': { meaning: 'From Magdala', origin: 'Hebrew', region: 'Poland', popularity: 'Medium' },
-	'Stanisław': { meaning: 'Glorious government', origin: 'Slavic', region: 'Poland', popularity: 'Medium' },
-	'Elżbieta': { meaning: 'God is my oath', origin: 'Hebrew', region: 'Poland', popularity: 'Medium' },
+// Test function for name validation
+function testNameExtraction() {
+	const testMessages = [
+		"pls my sister name Alexa",
+		"please write my brother name John",
+		"napisz moje siostry imię Anna",
+		"name Michael",
+		"imie Piotr",
+		"pls my friend name Sarah",
+		"please my cousin name David",
+		"napisz moje imię Krzysztof",
+		"write my name Emma",
+		"pls name Robert"
+	];
 	
-	// English names
-	'John': { meaning: 'God is gracious', origin: 'Hebrew', region: 'English', popularity: 'Very High' },
-	'Mary': { meaning: 'Sea of bitterness, beloved', origin: 'Hebrew', region: 'English', popularity: 'Very High' },
-	'William': { meaning: 'Resolute protector', origin: 'Germanic', region: 'English', popularity: 'High' },
-	'Elizabeth': { meaning: 'God is my oath', origin: 'Hebrew', region: 'English', popularity: 'High' },
-	'James': { meaning: 'Supplanter', origin: 'Hebrew', region: 'English', popularity: 'High' },
-	'Patricia': { meaning: 'Noble', origin: 'Latin', region: 'English', popularity: 'Medium' },
-	'Robert': { meaning: 'Bright fame', origin: 'Germanic', region: 'English', popularity: 'High' },
-	'Jennifer': { meaning: 'White shadow, white wave', origin: 'Welsh', region: 'English', popularity: 'Medium' },
-	'Michael': { meaning: 'Who is like God?', origin: 'Hebrew', region: 'English', popularity: 'High' },
-	'Linda': { meaning: 'Beautiful', origin: 'Germanic', region: 'English', popularity: 'Medium' },
-	
-	// German names
-	'Hans': { meaning: 'God is gracious', origin: 'Hebrew', region: 'Germany', popularity: 'High' },
-	'Anna': { meaning: 'Grace, favor', origin: 'Hebrew', region: 'Germany', popularity: 'High' },
-	'Peter': { meaning: 'Rock, stone', origin: 'Greek', region: 'Germany', popularity: 'Medium' },
-	'Maria': { meaning: 'Sea of bitterness, beloved', origin: 'Hebrew', region: 'Germany', popularity: 'High' },
-	'Klaus': { meaning: 'Victory of the people', origin: 'Germanic', region: 'Germany', popularity: 'Medium' },
-	'Greta': { meaning: 'Pearl', origin: 'Greek', region: 'Germany', popularity: 'Medium' },
-	
-	// French names
-	'Jean': { meaning: 'God is gracious', origin: 'Hebrew', region: 'France', popularity: 'High' },
-	'Marie': { meaning: 'Sea of bitterness, beloved', origin: 'Hebrew', region: 'France', popularity: 'High' },
-	'Pierre': { meaning: 'Rock, stone', origin: 'Greek', region: 'France', popularity: 'Medium' },
-	'Sophie': { meaning: 'Wisdom', origin: 'Greek', region: 'France', popularity: 'Medium' },
-	'Louis': { meaning: 'Famous warrior', origin: 'Germanic', region: 'France', popularity: 'Medium' },
-	'Camille': { meaning: 'Perfect', origin: 'Latin', region: 'France', popularity: 'Medium' },
-	
-	// Spanish names
-	'Juan': { meaning: 'God is gracious', origin: 'Hebrew', region: 'Spain', popularity: 'Very High' },
-	'Maria': { meaning: 'Sea of bitterness, beloved', origin: 'Hebrew', region: 'Spain', popularity: 'Very High' },
-	'Carlos': { meaning: 'Free man', origin: 'Germanic', region: 'Spain', popularity: 'High' },
-	'Carmen': { meaning: 'Garden', origin: 'Hebrew', region: 'Spain', popularity: 'Medium' },
-	'Jose': { meaning: 'God will increase', origin: 'Hebrew', region: 'Spain', popularity: 'High' },
-	'Ana': { meaning: 'Grace, favor', origin: 'Hebrew', region: 'Spain', popularity: 'High' },
-	
-	// Italian names
-	'Giuseppe': { meaning: 'God will increase', origin: 'Hebrew', region: 'Italy', popularity: 'High' },
-	'Maria': { meaning: 'Sea of bitterness, beloved', origin: 'Hebrew', region: 'Italy', popularity: 'Very High' },
-	'Marco': { meaning: 'Warlike', origin: 'Latin', region: 'Italy', popularity: 'Medium' },
-	'Giulia': { meaning: 'Youthful', origin: 'Latin', region: 'Italy', popularity: 'Medium' },
-	'Antonio': { meaning: 'Priceless', origin: 'Latin', region: 'Italy', popularity: 'Medium' },
-	'Sofia': { meaning: 'Wisdom', origin: 'Greek', region: 'Italy', popularity: 'Medium' },
-	
-	// Russian names
-	'Alexander': { meaning: 'Defender of the people', origin: 'Greek', region: 'Russia', popularity: 'High' },
-	'Maria': { meaning: 'Sea of bitterness, beloved', origin: 'Hebrew', region: 'Russia', popularity: 'High' },
-	'Dmitry': { meaning: 'Follower of Demeter', origin: 'Greek', region: 'Russia', popularity: 'Medium' },
-	'Anna': { meaning: 'Grace, favor', origin: 'Hebrew', region: 'Russia', popularity: 'Medium' },
-	'Sergey': { meaning: 'Servant', origin: 'Latin', region: 'Russia', popularity: 'Medium' },
-	'Elena': { meaning: 'Bright, shining light', origin: 'Greek', region: 'Russia', popularity: 'Medium' },
-	
-	// Japanese names
-	'Hiroto': { meaning: 'Big flight', origin: 'Japanese', region: 'Japan', popularity: 'Medium' },
-	'Sakura': { meaning: 'Cherry blossom', origin: 'Japanese', region: 'Japan', popularity: 'Medium' },
-	'Kenji': { meaning: 'Strong, second', origin: 'Japanese', region: 'Japan', popularity: 'Medium' },
-	'Aiko': { meaning: 'Love child', origin: 'Japanese', region: 'Japan', popularity: 'Medium' },
-	'Takashi': { meaning: 'Noble, prosperous', origin: 'Japanese', region: 'Japan', popularity: 'Medium' },
-	'Yuki': { meaning: 'Happiness, snow', origin: 'Japanese', region: 'Japan', popularity: 'Medium' },
-	
-	// Chinese names
-	'Wei': { meaning: 'Greatness, extraordinary', origin: 'Chinese', region: 'China', popularity: 'Medium' },
-	'Li': { meaning: 'Beautiful, strength', origin: 'Chinese', region: 'China', popularity: 'Medium' },
-	'Zhang': { meaning: 'Stretch, open', origin: 'Chinese', region: 'China', popularity: 'Medium' },
-	'Wang': { meaning: 'King, monarch', origin: 'Chinese', region: 'China', popularity: 'Medium' },
-	'Chen': { meaning: 'Morning, dawn', origin: 'Chinese', region: 'China', popularity: 'Medium' },
-	'Liu': { meaning: 'Willow tree', origin: 'Chinese', region: 'China', popularity: 'Medium' },
-	
-	// Indian names
-	'Arjun': { meaning: 'Bright, white, clear', origin: 'Sanskrit', region: 'India', popularity: 'Medium' },
-	'Priya': { meaning: 'Beloved, dear', origin: 'Sanskrit', region: 'India', popularity: 'Medium' },
-	'Vikram': { meaning: 'Valour, bravery', origin: 'Sanskrit', region: 'India', popularity: 'Medium' },
-	'Anjali': { meaning: 'Offering, gift', origin: 'Sanskrit', region: 'India', popularity: 'Medium' },
-	'Rahul': { meaning: 'Efficient, conqueror', origin: 'Sanskrit', region: 'India', popularity: 'Medium' },
-	'Meera': { meaning: 'Prosperous, ocean', origin: 'Sanskrit', region: 'India', popularity: 'Medium' },
-	
-	// Arabic names
-	'Ahmed': { meaning: 'Most commendable', origin: 'Arabic', region: 'Middle East', popularity: 'High' },
-	'Fatima': { meaning: 'One who abstains', origin: 'Arabic', region: 'Middle East', popularity: 'Medium' },
-	'Mohammed': { meaning: 'Praiseworthy', origin: 'Arabic', region: 'Middle East', popularity: 'High' },
-	'Aisha': { meaning: 'Alive, living', origin: 'Arabic', region: 'Middle East', popularity: 'Medium' },
-	'Ali': { meaning: 'High, elevated', origin: 'Arabic', region: 'Middle East', popularity: 'Medium' },
-	'Zara': { meaning: 'Princess, flower', origin: 'Arabic', region: 'Middle East', popularity: 'Medium' },
-	
-	// African names
-	'Kofi': { meaning: 'Born on Friday', origin: 'Akan', region: 'Ghana', popularity: 'Medium' },
-	'Aisha': { meaning: 'Alive, living', origin: 'Arabic', region: 'Nigeria', popularity: 'Medium' },
-	'Kwame': { meaning: 'Born on Saturday', origin: 'Akan', region: 'Ghana', popularity: 'Medium' },
-	'Zara': { meaning: 'Princess, flower', origin: 'Arabic', region: 'Kenya', popularity: 'Medium' },
-	'Kemi': { meaning: 'Sweet', origin: 'Yoruba', region: 'Nigeria', popularity: 'Medium' },
-	'Biko': { meaning: 'Ask', origin: 'Zulu', region: 'South Africa', popularity: 'Medium' }
-};
-
-// Name validation and information functions
-function isValidGlobalName(name) {
-	if (!name) return false;
-	const normalizedName = name.trim();
-	return GLOBAL_NAMES_DB.hasOwnProperty(normalizedName);
+	console.log("=== Test walidacji imion ===");
+	testMessages.forEach(msg => {
+		const extracted = extractValidName(msg);
+		console.log(`"${msg}" -> "${extracted}"`);
+	});
 }
 
-function getNameInfo(name) {
-	if (!name) return null;
-	const normalizedName = name.trim();
-	return GLOBAL_NAMES_DB[normalizedName] || null;
-}
-
-function getNamesByRegion(region) {
-	return Object.entries(GLOBAL_NAMES_DB)
-		.filter(([_, info]) => info.region === region)
-		.map(([name, info]) => ({ name, ...info }));
-}
-
-function getNamesByOrigin(origin) {
-	return Object.entries(GLOBAL_NAMES_DB)
-		.filter(([_, info]) => info.origin === origin)
-		.map(([name, info]) => ({ name, ...info }));
-}
-
-function searchNames(query) {
-	if (!query) return [];
-	const normalizedQuery = query.toLowerCase();
-	return Object.entries(GLOBAL_NAMES_DB)
-		.filter(([name, info]) => 
-			name.toLowerCase().includes(normalizedQuery) ||
-			info.meaning.toLowerCase().includes(normalizedQuery) ||
-			info.region.toLowerCase().includes(normalizedQuery) ||
-			info.origin.toLowerCase().includes(normalizedQuery)
-		)
-		.map(([name, info]) => ({ name, ...info }));
-}
-
-// Enhanced name extraction with validation
+// Simple name validation - extract names from various message formats
 function extractValidName(message) {
 	if (isNoiseMessage(message)) return null;
 	if (!message) return null;
@@ -459,48 +337,72 @@ function extractValidName(message) {
 	let s = String(message).trim();
 	if (!s) return null;
 	
-	// Usuń wszystko poza literami (unicode), spacjami, myślnikiem i apostrofem
+	// Remove symbols except letters, spaces, hyphens and apostrophes
 	try {
 		s = s.replace(/[^\p{L}\s'\-]/gu, '');
 	} catch {
-		// Fallback bez \p{L}
+		// Fallback without \p{L}
 		s = s.replace(/[^A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]/g, '');
 	}
 	
-	// Redukuj wielokrotne spacje
+	// Reduce multiple spaces
 	s = s.replace(/\s+/g, ' ').trim();
 	if (!s) return null;
 	
+	// Common patterns for requesting names
+	const namePatterns = [
+		/pls?\s+(?:my\s+)?(?:sister\s+)?(?:brother\s+)?(?:friend\s+)?(?:cousin\s+)?name\s+([A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]+)/i,
+		/please\s+(?:write\s+)?(?:my\s+)?(?:sister\s+)?(?:brother\s+)?(?:friend\s+)?(?:cousin\s+)?name\s+([A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]+)/i,
+		/napisz\s+(?:moje\s+)?(?:siostry\s+)?(?:brata\s+)?(?:przyjaciela\s+)?(?:kuzyna\s+)?imię\s+([A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]+)/i,
+		/name\s+([A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]+)/i,
+		/imie\s+([A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]+)/i,
+		/imie\s+([A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-\s]+)/i
+	];
+	
+	// Try to extract name from patterns first
+	for (const pattern of namePatterns) {
+		const match = s.match(pattern);
+		if (match && match[1]) {
+			const extractedName = match[1].trim();
+			if (isValidNameFormat(extractedName)) {
+				return formatName(extractedName);
+			}
+		}
+	}
+	
+	// If no pattern match, try to extract potential names from the message
 	const tokens = s.split(' ');
-	if (tokens.length < 1 || tokens.length > 3) return null;
+	if (tokens.length < 1 || tokens.length > 5) return null;
 	
-	// Każdy token 2-20 znaków, zaczyna się literą
-	for (const t of tokens) {
-		if (t.length < 2 || t.length > 20) return null;
-		if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç]/.test(t)) return null;
+	// Look for name-like tokens (2-20 chars, starts with letter)
+	const nameTokens = tokens.filter(t => {
+		if (t.length < 2 || t.length > 20) return false;
+		if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç]/.test(t)) return false;
+		// Skip common words that are not names
+		const commonWords = ['pls', 'please', 'my', 'sister', 'brother', 'friend', 'cousin', 'name', 'imie', 'imię', 'napisz', 'write'];
+		return !commonWords.includes(t.toLowerCase());
+	});
+	
+	if (nameTokens.length > 0) {
+		// Take the first valid name token
+		return formatName(nameTokens[0]);
 	}
 	
-	// Title Case
-	const titled = tokens.map(tok => tok.charAt(0).toUpperCase() + tok.slice(1).toLowerCase());
-	const candidate = titled.join(' ');
-	
-	// Profanity blocklist
-	if (containsProfanity(candidate)) return null;
-	
-	// Diddy again on sanitized
-	if (isDiddySpam(candidate)) return null;
-	
-	// Enhanced validation: check if it's a known name
-	const nameInfo = getNameInfo(candidate);
-	if (nameInfo) {
-		// Store name info for display
-		state.lastNameInfo = nameInfo;
-		return candidate;
-	}
-	
-	// Fallback: allow names that look valid even if not in database
-	// This maintains backward compatibility
-	return candidate;
+	return null;
+}
+
+function isValidNameFormat(name) {
+	if (!name || name.length < 2 || name.length > 20) return false;
+	// Must start with a letter
+	if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç]/.test(name)) return false;
+	// Can contain letters, hyphens, apostrophes
+	if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žŻżŹźŞşĆćŁłŃńÓóĄąĘęİıĞğÇç'\-]+$/.test(name)) return false;
+	return true;
+}
+
+function formatName(name) {
+	// Title Case: first letter uppercase, rest lowercase
+	return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
 
 function containsProfanity(text) {
@@ -938,6 +840,7 @@ function setupUi() {
 	els.statsList = qs('statsList');
 	els.testKeyBtn = qs('testKeyBtn');
 	els.testLiveBtn = qs('testLiveBtn');
+	els.testNamesBtn = qs('testNamesBtn');
 	els.speedSelect = qs('speedSelect');
 	els.refreshBtn = qs('refreshBtn');
 	els.spamSelect = qs('spamSelect');
@@ -969,6 +872,7 @@ function setupUi() {
 	});
 	els.testKeyBtn.addEventListener('click', testApiKey);
 	els.testLiveBtn.addEventListener('click', testLive);
+	els.testNamesBtn.addEventListener('click', testNameExtraction);
 	els.speedSelect.addEventListener('change', () => { state.speedMode = els.speedSelect.value; });
 	els.refreshBtn.addEventListener('click', handleRefresh);
 	if (els.softRefreshBtn) els.softRefreshBtn.addEventListener('click', handleSoftRefresh);
