@@ -73,7 +73,7 @@
 		<section class="panel left">
 			<h2 id="modeTitle">Tryb: Imiona</h2>
 			<p id="modeHint">Napisz imię na czacie albo wpisz poniżej i wciśnij Enter.</p>
-			<input id="manualName" class="manual" type="text" placeholder="Wpisz i Enter…" autocomplete="off" />
+			<input id="manualName" class="manual" type="text" placeholder="Wpisz imię z bazy i Enter…" autocomplete="off" />
 			<div class="status" id="statusBox">Niepołączono z czatem.</div>
 			<div class="last-sub" id="lastSub">Ostatni sub/członek: —</div>
 			
@@ -81,7 +81,8 @@
 				<p><strong>Wskazówka</strong>: W trybie „Kraje" liczą się tylko poprawne nazwy krajów po angielsku (np. Poland, Germany, United States).</p>
 				<p><strong>Filtry</strong>: Ignorujemy komendy (! / ~), wulgaryzmy, linki i mem „DIDDY".</p>
 				<p><strong>Nowość</strong>: Aplikacja teraz rozpoznaje różne formaty wiadomości jak "pls my sister name Alexa"!</p>
-				<p><strong>Baza imion</strong>: Nowe imiona są automatycznie dodawane do bazy 14,688+ imion. Jeśli imię już istnieje, pojawi się komunikat.</p>
+				<p><strong>Baza imion</strong>: Pole powyżej waliduje imiona z bazy ${state.namesDatabase?.size || '22,000+'}+ imion. Wpisz tylko imiona, które istnieją w bazie.</p>
+				<p><strong>Przykłady imion</strong>: John, Maria, Ahmed, Sakura, Kofi, Priya, Dmitry, Elena</p>
 			</div>
 		</section>
 		<section class="panel right">
